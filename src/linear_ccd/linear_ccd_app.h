@@ -3,6 +3,9 @@
 
 #include <libsc/ccd_smart_car.h>
 
+namespace linear_ccd
+{
+
 class LinearCcdApp
 {
 public:
@@ -11,5 +14,7 @@ public:
 private:
 	libsc::CcdSmartCar mCar;
 };
+
+}
 
 #endif /* LINEAR_CCD_APP_H_ */

@@ -9,11 +9,11 @@
 int main()
 {
 #if defined(LINEAR_CCD)
-	LinearCcdApp app;
+	linear_ccd::LinearCcdApp app;
 #elif defined(CAMERA)
-	CameraApp app;
+	camera::CameraApp app;
 #elif defined(MAGNETIC)
-	MagneticApp app;
+	magnetic::MagneticApp app;
 #endif
 	app.Run();
 	return 0;

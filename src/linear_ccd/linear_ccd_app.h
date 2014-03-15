@@ -39,6 +39,16 @@ private:
 		}
 	};
 
+	struct ServoState
+	{
+		libutil::Clock::ClockInt prev_run;
+
+		ServoState()
+		{
+			prev_run = 0;
+		}
+	};
+
 	struct SpeedControlState
 	{
 		libutil::Clock::ClockInt prev_run;
@@ -50,12 +60,14 @@ private:
 	};
 
 	void LedPass();
+	void ServoPass();
 	void SpeedControlPass();
 
 	Car m_car;
 	PidController m_pid_controller;
 
 	LedState m_led_state;
+	ServoState m_servo_state;
 	SpeedControlState m_speed_control_state;
 
 	static LinearCcdApp *m_instance;

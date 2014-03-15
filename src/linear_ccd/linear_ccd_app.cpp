@@ -19,6 +19,7 @@
 using libutil::Clock;
 
 #define LED_FREQ 250
+#define SERVO_FREQ 2
 #define SPEED_CTRL_FREQ 100
 
 #define SPEED_SP 300
@@ -49,8 +50,9 @@ void LinearCcdApp::Run()
 
 	while (true)
 	{
-		LedPass();
+		ServoPass();
 		SpeedControlPass();
+		LedPass();
 	}
 }
 
@@ -64,6 +66,18 @@ void LinearCcdApp::LedPass()
 		m_led_state.flag ^= true;
 
 		m_led_state.prev_run %= time;
+	}
+}
+
+void LinearCcdApp::ServoPass()
+{
+	const Clock::ClockInt time = Clock::Time();
+	if (Clock::TimeDiff(time, m_servo_state.prev_run) >= SERVO_FREQ)
+	{
+		const bool *ccd_data = m_car.SampleCcd();
+		// TODO
+
+		m_servo_state.prev_run = time;
 	}
 }
 

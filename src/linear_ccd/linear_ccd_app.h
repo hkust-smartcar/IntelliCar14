@@ -33,10 +33,8 @@ private:
 		bool flag;
 
 		LedState()
-		{
-			prev_run = 0;
-			flag = false;
-		}
+				: prev_run(0), flag(false)
+		{}
 	};
 
 	struct ServoState
@@ -44,9 +42,8 @@ private:
 		libutil::Clock::ClockInt prev_run;
 
 		ServoState()
-		{
-			prev_run = 0;
-		}
+				: prev_run(0)
+		{}
 	};
 
 	struct SpeedState

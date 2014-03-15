@@ -1,3 +1,11 @@
+/*
+ * linear_ccd_app.cpp
+ * Linear CCD App
+ *
+ * Author: Louis Mo, Ming Tsang, Spartey Chan
+ * Copyright (c) 2014 HKUST SmartCar Team
+ */
+
 #include <syscall.h>
 
 #include <cstdint>

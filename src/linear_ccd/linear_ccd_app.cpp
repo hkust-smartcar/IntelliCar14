@@ -12,7 +12,7 @@
 
 #include <libutil/clock.h>
 
-#include "pid_controller.h"
+#include "libutil/pid_controller.h"
 
 #include "linear_ccd/linear_ccd_app.h"
 

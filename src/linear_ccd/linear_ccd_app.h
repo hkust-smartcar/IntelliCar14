@@ -11,7 +11,7 @@
 
 #include "linear_ccd/car.h"
 
-#include "pid_controller.h"
+#include "libutil/pid_controller.h"
 
 namespace linear_ccd
 {
@@ -49,7 +49,7 @@ private:
 	struct SpeedState
 	{
 		libutil::Clock::ClockInt prev_run;
-		PidController pid;
+		libutil::PidController pid;
 
 		SpeedState();
 	};

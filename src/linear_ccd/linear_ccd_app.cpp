@@ -75,7 +75,7 @@ void LinearCcdApp::SpeedControlPass()
 		const uint16_t power = m_pid_controller.Calc(time, m_car.GetEncoderCount());
 		m_car.SetMotorPower(power);
 
-		m_led_state.prev_run = time;
+		m_speed_control_state.prev_run = time;
 	}
 }
 

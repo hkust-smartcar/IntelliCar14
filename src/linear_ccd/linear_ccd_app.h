@@ -2,7 +2,7 @@
  * linear_ccd_app.h
  * Linear CCD App
  *
- * Author: Louis Mo, Ming Tsang, Spartey Chan
+ * Author: Louis Mo, Ming Tsang, Spartey Chen
  * Copyright (c) 2014 HKUST SmartCar Team
  */
 

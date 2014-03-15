@@ -2,7 +2,7 @@
  * car.cpp
  * Linear CCD car
  *
- * Author: Ming Tsang
+ * Author: Louis Mo, Ming Tsang, Spartey Chen
  * Copyright (c) 2014 HKUST SmartCar Team
  */
 

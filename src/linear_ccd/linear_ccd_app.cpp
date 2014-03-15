@@ -32,8 +32,12 @@ namespace linear_ccd
 
 LinearCcdApp *LinearCcdApp::m_instance = nullptr;
 
+LinearCcdApp::SpeedControlState::SpeedControlState()
+		: prev_run(0),
+		  pid(SPEED_SP, SPEED_KP, SPEED_KI, SPEED_KD)
+{}
+
 LinearCcdApp::LinearCcdApp()
-		: m_pid_controller(SPEED_SP, SPEED_KP, SPEED_KI, SPEED_KD)
 {
 	m_instance = this;
 }
@@ -84,12 +88,13 @@ void LinearCcdApp::ServoPass()
 void LinearCcdApp::SpeedControlPass()
 {
 	const Clock::ClockInt time = Clock::Time();
-	if (Clock::TimeDiff(time, m_speed_control_state.prev_run) >= SPEED_CTRL_FREQ)
+	if (Clock::TimeDiff(time, m_speed_state.prev_run) >= SPEED_CTRL_FREQ)
 	{
-		const uint16_t power = m_pid_controller.Calc(time, m_car.GetEncoderCount());
+		const uint16_t power = m_speed_state.pid.Calc(time,
+				m_car.GetEncoderCount());
 		m_car.SetMotorPower(power);
 
-		m_speed_control_state.prev_run = time;
+		m_speed_state.prev_run = time;
 	}
 }
 

@@ -32,7 +32,7 @@ namespace linear_ccd
 
 LinearCcdApp *LinearCcdApp::m_instance = nullptr;
 
-LinearCcdApp::SpeedControlState::SpeedControlState()
+LinearCcdApp::SpeedState::SpeedState()
 		: prev_run(0),
 		  pid(SPEED_SP, SPEED_KP, SPEED_KI, SPEED_KD)
 {}

@@ -42,14 +42,10 @@ private:
 	struct SpeedControlState
 	{
 		libutil::Clock::ClockInt prev_run;
-		uint32_t prev_speed;
-		uint16_t prev_power;
 
 		SpeedControlState()
 		{
 			prev_run = 0;
-			prev_speed = 0;
-			prev_power = 0;
 		}
 	};
 

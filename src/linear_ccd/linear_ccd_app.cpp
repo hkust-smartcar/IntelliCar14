@@ -69,7 +69,7 @@ void LinearCcdApp::LedPass()
 		m_car.SwitchLed(1, !m_led_state.flag);
 		m_led_state.flag ^= true;
 
-		m_led_state.prev_run %= time;
+		m_led_state.prev_run = time - (time % LED_FREQ);
 	}
 }
 

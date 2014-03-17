@@ -10,7 +10,9 @@
 
 #include <cstdint>
 
+#include <libsc/com/linear_ccd.h>
 #include <libutil/clock.h>
+#include <libutil/string.h>
 
 #include "libutil/pid_controller.h"
 
@@ -81,6 +83,16 @@ void LinearCcdApp::ServoPass()
 		const bool *ccd_data = m_car.SampleCcd();
 		// TODO
 
+#ifdef DEBUG
+		// Send CCD data through UART
+		char str[libsc::LinearCcd::SENSOR_W];
+		for (int i = 0; i < libsc::LinearCcd::SENSOR_W; ++i)
+		{
+			str[i] = ccd_data[i] ? ' ' : '#';
+		}
+		m_car.UartSendStr(str);
+#endif
+
 		m_servo_state.prev_run = time;
 	}
 }
@@ -92,7 +104,12 @@ void LinearCcdApp::SpeedControlPass()
 	{
 		const uint16_t power = m_speed_state.pid.Calc(time,
 				m_car.GetEncoderCount());
-		m_car.SetMotorPower(power);
+		//m_car.SetMotorPower(power);
+
+#ifdef DEBUG
+		// Send speed PID through UART
+		m_car.UartSendStr(libutil::String::Format("%u", power).c_str());
+#endif
 
 		m_speed_state.prev_run = time;
 	}

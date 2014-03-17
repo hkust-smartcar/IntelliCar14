@@ -49,7 +49,7 @@ private:
 	struct SpeedState
 	{
 		libutil::Clock::ClockInt prev_run;
-		libutil::PidController pid;
+		libutil::PidController<uint32_t, uint16_t> pid;
 
 		SpeedState();
 	};

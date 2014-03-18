@@ -1,5 +1,15 @@
+/*
+ * magnetic_app.h
+ * Magnetic App
+ *
+ * Author:
+ * Copyright (c) 2014 HKUST SmartCar Team
+ */
+
 #ifndef MAGNETIC_APP_H_
 #define MAGNETIC_APP_H_
+
+#include "magnetic/car.h"
 
 namespace magnetic
 {
@@ -7,7 +17,17 @@ namespace magnetic
 class MagneticApp
 {
 public:
+	MagneticApp();
+	~MagneticApp();
+
 	void Run();
+
+	static int FwriteHandler(int, char *ptr, int len);
+
+private:
+	Car m_car;
+
+	static MagneticApp *m_instance;
 };
 
 }

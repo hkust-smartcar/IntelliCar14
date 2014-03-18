@@ -11,3 +11,14 @@
 *.lai
 *.la
 *.a
+
+#
+build/*
+data/*
+*.map
+*.elf
+
+# Eclipse
+.settings/*
+.cproject
+.project

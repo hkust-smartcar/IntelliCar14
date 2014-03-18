@@ -17,6 +17,8 @@ build/*
 data/*
 *.map
 *.elf
+WTF/*
+test/*
 
 # Eclipse
 .settings/*

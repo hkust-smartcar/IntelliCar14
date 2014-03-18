@@ -17,6 +17,8 @@
 #include "libutil/pid_controller.h"
 #include "libutil/pid_controller.tcc"
 
+#include "linear_ccd/car.h"
+
 #include "linear_ccd/linear_ccd_app.h"
 
 using libutil::Clock;

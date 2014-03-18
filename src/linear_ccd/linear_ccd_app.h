@@ -11,7 +11,7 @@
 
 #include "linear_ccd/car.h"
 
-#include "libutil/pid_controller.h"
+#include "libutil/clock.h"
 
 namespace linear_ccd
 {
@@ -51,12 +51,16 @@ private:
 		libutil::Clock::ClockInt prev_run;
 		libutil::PidController<uint32_t, uint16_t> pid;
 
+
 		SpeedState();
 	};
 
 	void LedPass();
 	void ServoPass();
 	void SpeedControlPass();
+	void Algorithm(const bool *ccd_data);
+	void ccd_scan_all_white_or_all_black_sample(const bool *ccd_data);
+	void ccd_print(const bool *ccd_data);
 
 	Car m_car;
 

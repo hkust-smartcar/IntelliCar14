@@ -60,10 +60,6 @@ private:
 	void ServoPass();
 	void SpeedControlPass();
 
-	void Algorithm(const bool *ccd_data);
-	void ccd_scan_all_white_or_all_black_sample(const bool *ccd_data);
-	void ccd_print(const bool *ccd_data);
-
 	Car m_car;
 
 	LedState m_led_state;

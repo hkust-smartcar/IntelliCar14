@@ -24,7 +24,7 @@
 using libutil::Clock;
 
 #define LED_FREQ 250
-#define SERVO_FREQ 2
+#define SERVO_FREQ 9
 #define SPEED_CTRL_FREQ 100
 
 #define SPEED_SP 300
@@ -92,9 +92,10 @@ void LinearCcdApp::ServoPass()
 		char str[libsc::LinearCcd::SENSOR_W];
 		for (int i = 0; i < libsc::LinearCcd::SENSOR_W; ++i)
 		{
-			str[i] = ccd_data[i] ? ' ' : '#';
+			str[i] = ccd_data[i] ? '#' : '.';
 		}
-		m_car.UartSendStr(str);
+		m_car.UartSendBuffer((uint8_t*)str, libsc::LinearCcd::SENSOR_W);
+		m_car.UartSendStr("\n");
 #endif
 
 		m_servo_state.prev_run = time;
@@ -112,7 +113,7 @@ void LinearCcdApp::SpeedControlPass()
 
 #ifdef DEBUG
 		// Send speed PID through UART
-		m_car.UartSendStr(libutil::String::Format("%u", power).c_str());
+		//m_car.UartSendStr(libutil::String::Format("%u\n", power).c_str());
 #endif
 
 		m_speed_state.prev_run = time;

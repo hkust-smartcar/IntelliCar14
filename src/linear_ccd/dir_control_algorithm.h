@@ -36,7 +36,7 @@ private:
 	int32_t left_start_length;
 	int32_t right_start_length;
 
-	int32_t ccd_mid_pos;
+	const int32_t ccd_mid_pos;
 
 	int all_white_smaple_flag;
 	int all_black_smaple_flag;
@@ -45,7 +45,7 @@ private:
 	int last_sample_error_pos;
 	int previous_mid_error_pos;
 
-	uint32_t current_dir_error;
+	int current_dir_error;
 	uint32_t current_dir_arc_value_error;
 
 	int current_1st_left_edge;

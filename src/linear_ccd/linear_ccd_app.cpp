@@ -6,6 +6,7 @@
  * Copyright (c) 2014 HKUST SmartCar Team
  */
 
+#include <hw_common.h>
 #include <syscall.h>
 
 #include <cstdint>
@@ -58,8 +59,17 @@ void LinearCcdApp::Run()
 	__g_fwrite_handler = FwriteHandler;
 	libutil::Clock::Init();
 
+	int servo = 0;
 	while (true)
 	{
+		/*
+		if (++servo > 100)
+		{
+			servo = 0;
+		}
+		m_car.SetRightPercentage(servo);
+		DELAY_MS(25);
+		*/
 		ServoPass();
 		SpeedControlPass();
 		LedPass();
@@ -85,7 +95,8 @@ void LinearCcdApp::ServoPass()
 	if (Clock::TimeDiff(time, m_servo_state.prev_run) >= SERVO_FREQ)
 	{
 		const bool *ccd_data = m_car.SampleCcd();
-		// TODO
+		m_dir_control.Control(ccd_data);
+
 
 #ifdef DEBUG
 		// Send CCD data through UART
@@ -107,9 +118,10 @@ void LinearCcdApp::SpeedControlPass()
 	const Clock::ClockInt time = Clock::Time();
 	if (Clock::TimeDiff(time, m_speed_state.prev_run) >= SPEED_CTRL_FREQ)
 	{
-		const uint16_t power = m_speed_state.pid.Calc(time,
+		uint16_t power = m_speed_state.pid.Calc(time,
 				m_car.GetEncoderCount());
-		//m_car.SetMotorPower(power);
+		power = 1500;
+		m_car.SetMotorPower(power);
 
 #ifdef DEBUG
 		// Send speed PID through UART

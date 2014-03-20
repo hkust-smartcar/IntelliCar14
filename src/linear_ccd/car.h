@@ -14,7 +14,7 @@
 #include <libsc/com/led.h>
 #include <libsc/com/linear_ccd.h>
 #include <libsc/com/motor.h>
-#include <libsc/com/servo.h>
+#include <libsc/com/trs_d05.h>
 
 namespace linear_ccd
 {
@@ -134,7 +134,7 @@ private:
 	libsc::Led m_leds[4];
 	libsc::LinearCcd m_ccd;
 	libsc::Motor m_motor;
-	libsc::Servo m_servo;
+	libsc::TrsD05 m_servo;
 };
 
 }

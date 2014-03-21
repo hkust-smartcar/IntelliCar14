@@ -101,7 +101,7 @@ void LinearCcdApp::ServoPass()
 #ifdef DEBUG
 		// Send CCD data through UART
 		char str[libsc::LinearCcd::SENSOR_W];
-		for (int i = 0; i < libsc::LinearCcd::SENSOR_W; ++i)
+		for (int i = 6; i < libsc::LinearCcd::SENSOR_W - 6; ++i)
 		{
 			str[i] = ccd_data[i] ? '#' : '.';
 		}

@@ -27,19 +27,19 @@ DirControlAlgorithm::DirControlAlgorithm(Car *car)
 		  left_start_length(50),
 		  right_start_length(50),
 
-		  ccd_mid_pos(128),
+		  ccd_mid_pos(122),
 
 		  all_white_smaple_flag(0),
 		  all_black_smaple_flag(0),
 
-		  current_mid_error_pos(128),
-		  last_sample_error_pos(128),
-		  previous_mid_error_pos(128),
+		  current_mid_error_pos(122),
+		  last_sample_error_pos(122),
+		  previous_mid_error_pos(122),
 
 		  current_dir_error(0),
 		  current_dir_arc_value_error(0),
 
-		  current_1st_left_edge(256),
+		  current_1st_left_edge(VALID_PIXEL),
 		  current_1st_right_edge(0),
 
 		  current_edge_middle_distance(0),
@@ -50,6 +50,8 @@ DirControlAlgorithm::DirControlAlgorithm(Car *car)
 
 void DirControlAlgorithm::Control(const bool *ccd_data)
 {
+	ccd_data += 6;
+
 	CcdScanAllWhiteOrAllBlackSample(ccd_data);
 
 	detect_left_flag = 0;
@@ -118,7 +120,6 @@ void DirControlAlgorithm::Control(const bool *ccd_data)
 	if (all_white_smaple_flag == 1)
 	{
 		if_case = 4;
-		//current_mid_error_pos = ccd_mid_pos+(encoder_turn_error*35/100); // John added
 		current_mid_error_pos = ccd_mid_pos;
 	}
 
@@ -130,7 +131,6 @@ void DirControlAlgorithm::Control(const bool *ccd_data)
 	}
 
 	current_dir_error = (current_mid_error_pos - ccd_mid_pos);
-	//current_dir_arc_value_error = atan(current_dir_error*(atan_multiply_value))*1000;
 	printf("current_dir_error: %d\n", current_dir_error);
 	printf("if_case :%d\n", if_case);
 

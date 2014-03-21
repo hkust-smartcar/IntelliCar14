@@ -130,6 +130,7 @@ void DirControlAlgorithm::Control(const bool *ccd_data)
 	}
 
 	current_dir_error = (current_mid_error_pos - ccd_mid_pos);
+	//current_dir_arc_value_error = atan(current_dir_error*(atan_multiply_value))*1000;
 	printf("current_dir_error: %d\n", current_dir_error);
 	printf("if_case :%d\n", if_case);
 

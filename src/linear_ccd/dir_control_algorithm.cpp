@@ -18,6 +18,7 @@ using namespace std;
 
 #define VALID_PIXEL 244
 #define SERVO_KP 3.15f
+#define SERVO_KD 1.50f
 
 namespace linear_ccd
 {
@@ -37,7 +38,8 @@ DirControlAlgorithm::DirControlAlgorithm(Car *car)
 		  previous_mid_error_pos(122),
 
 		  current_dir_error(0),
-		  current_dir_arc_value_error(0),
+		  previous_dir_error(0),
+		  difference_dir_error(0),
 
 		  current_1st_left_edge(VALID_PIXEL),
 		  current_1st_right_edge(0),
@@ -56,7 +58,7 @@ void DirControlAlgorithm::Control(const bool *ccd_data)
 
 	detect_left_flag = 0;
 	detect_right_flag = 0;
-	current_1st_left_edge=256;
+	current_1st_left_edge=244;
 	current_1st_right_edge=0;
 
 	for (int i = last_sample_error_pos; i > 0; i--)
@@ -116,38 +118,51 @@ void DirControlAlgorithm::Control(const bool *ccd_data)
 		}
 	}
 
+	else if (detect_left_flag == 0 && detect_right_flag == 0)
+	{
+		if_case = 4;
+		current_mid_error_pos = ccd_mid_pos;
+	}
+
 	/* ---------------------------------------- (no middle noise) Cross road*/
 	if (all_white_smaple_flag == 1)
 	{
-		if_case = 4;
+		if_case = 5;
 		current_mid_error_pos = ccd_mid_pos;
 	}
 
 	/* |||||||||||||||||||||||||||||||||||||||| (all black) */
 	if(all_black_smaple_flag == 1)
 	{
-		if_case = 5;
+		if_case = 6;
 		//current_mid_error_pos = ccd_mid_pos + current_dir_error;
 	}
 
 	current_dir_error = (current_mid_error_pos - ccd_mid_pos);
 	printf("current_dir_error: %d\n", current_dir_error);
+
+	difference_dir_error = current_dir_error - previous_dir_error;
+	printf("previous_dir_error: %d\n", previous_dir_error);
+	printf("difference_dir_error: %d\n", difference_dir_error);
+
+	previous_dir_error = current_dir_error;
+
 	printf("if_case :%d\n", if_case);
 
 	// 0 - 100 -> 90 ~ 50(turn left)
 	// 0 - 100 -> 90 ~ 130(turn right)
 	if (current_dir_error > 0) // turn left
 	{
-		m_car->TurnLeft(std::min<int>(abs(current_dir_error*SERVO_KP), 100));
+		m_car->TurnLeft(std::min<int>(abs(current_dir_error*SERVO_KP+difference_dir_error*SERVO_KD), 100));
 	} else // turn right
 	{
-		m_car->TurnRight(std::min<int>(abs(current_dir_error*SERVO_KP), 100));
+		m_car->TurnRight(std::min<int>(abs(current_dir_error*SERVO_KP+difference_dir_error*SERVO_KD), 100));
 	}
-	//previous_mid_error_pos = current_mid_error_pos;
-	if (current_mid_error_pos < 0)
+
+	/*if (current_mid_error_pos < 0)
 	{
 		__BREAKPOINT();
-	}
+	}*/
 	last_sample_error_pos = current_mid_error_pos;
 	current_edge_middle_distance = current_1st_right_edge - current_1st_left_edge;
 }

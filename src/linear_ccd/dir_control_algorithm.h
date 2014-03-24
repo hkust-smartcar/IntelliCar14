@@ -46,7 +46,8 @@ private:
 	int previous_mid_error_pos;
 
 	int current_dir_error;
-	uint32_t current_dir_arc_value_error;
+	int previous_dir_error;
+	int difference_dir_error;
 
 	int current_1st_left_edge;
 	int current_1st_right_edge;

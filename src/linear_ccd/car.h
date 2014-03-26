@@ -58,25 +58,12 @@ public:
 	void DropMotorPowerTil(const uint16_t factor, const uint16_t min);
 
 	/**
-	 * Turn the robot to the left
+	 * Set the turning percentage, negative input means turning left
 	 *
 	 * @param percentage Specifying how aggressively should the car turn,
-	 * in [0, 100], where passing 0 basically means going straight
+	 * in [-100, 100], where passing 0 basically means going straight
 	 */
-	void TurnLeft(const uint8_t percentage);
-	void TurnRight(const uint8_t percentage);
-	/**
-	 * Combining TurnLeft() and TurnRight() into one
-	 *
-	 * @param percentage 0 means turning left, and 70 means slightly turning
-	 * right
-	 * @return
-	 */
-	void SetRightPercentage(const uint8_t percentage);
-	void GoStraight()
-	{
-		TurnLeft(0);
-	}
+	void SetTurning(const int16_t percentage);
 
 	/**
 	 * Switch on/off the LEDs

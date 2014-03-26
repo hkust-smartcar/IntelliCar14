@@ -66,20 +66,10 @@ void Car::DropMotorPowerTil(const uint16_t factor, const uint16_t min)
 	}
 }
 
-void Car::TurnLeft(const uint8_t percentage)
+void Car::SetTurning(const int16_t percentage)
 {
-	m_servo.SetDegree(SERVO_MID_DEGREE - (percentage * SERVO_AMPLITUDE / 100));
-}
-
-void Car::TurnRight(const uint8_t percentage)
-{
-	m_servo.SetDegree((percentage * SERVO_AMPLITUDE / 100) + SERVO_MID_DEGREE);
-}
-
-void Car::SetRightPercentage(const uint8_t percentage)
-{
-	m_servo.SetDegree((percentage * (SERVO_AMPLITUDE * 2) / 100)
-			+ SERVO_MIN_DEGREE);
+	const int16_t _percentage = libutil::Clamp<int16_t>(-100, percentage, 100);
+	m_servo.SetDegree(SERVO_MID_DEGREE + (_percentage * SERVO_AMPLITUDE / 100));
 }
 
 bool Car::IsMotorForward() const

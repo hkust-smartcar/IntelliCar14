@@ -11,6 +11,9 @@
 #include <cmath>
 #include <algorithm>
 
+#include <libutil/pid_controller.h>
+#include <libutil/pid_controller.tcc>
+
 #include "linear_ccd/car.h"
 #include "linear_ccd/dir_control_algorithm.h"
 
@@ -49,7 +52,9 @@ DirControlAlgorithm::DirControlAlgorithm(Car *car)
 		  current_edge_middle_distance(0),
 
 		  detect_left_flag(0),
-		  detect_right_flag(0)
+		  detect_right_flag(0),
+
+		  m_servo_pid(122, SERVO_KP, 0.0f, SERVO_KD)
 {}
 
 void DirControlAlgorithm::Control(const bool *ccd_data)
@@ -150,11 +155,11 @@ void DirControlAlgorithm::Control(const bool *ccd_data)
 	}
 
 	current_dir_error = (current_mid_error_pos - ccd_mid_pos);
-	printf("current_dir_error: %d\n", current_dir_error);
+	//printf("current_dir_error: %d\n", current_dir_error);
 
 	difference_dir_error = current_dir_error - previous_dir_error;
-	printf("previous_dir_error: %d\n", previous_dir_error);
-	printf("difference_dir_error: %d\n", difference_dir_error);
+	//printf("previous_dir_error: %d\n", previous_dir_error);
+	//printf("difference_dir_error: %d\n", difference_dir_error);
 
 	previous_dir_error = current_dir_error;
 
@@ -169,6 +174,9 @@ void DirControlAlgorithm::Control(const bool *ccd_data)
 	{
 		m_car->TurnRight(std::min<int>(abs(current_dir_error*SERVO_KP-difference_dir_error*SERVO_KD), 100));
 	}
+
+	m_servo_pid.Print("servo");
+	m_car->SetTurning(m_servo_pid.Calc(current_mid_error_pos));
 
 	/*if (current_mid_error_pos < 0)
 	{

@@ -11,6 +11,8 @@
 
 #include <cstdint>
 
+#include <libutil/pid_controller.h>
+
 namespace linear_ccd
 {
 
@@ -58,6 +60,8 @@ private:
 
 	int detect_left_flag;
 	int detect_right_flag;
+
+	libutil::PidController<int, int> m_servo_pid;
 };
 
 }

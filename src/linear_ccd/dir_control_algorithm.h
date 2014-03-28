@@ -35,31 +35,20 @@ private:
 
 	Car *m_car;
 
-	int left_start_length;
-	int right_start_length;
+	bool all_white_smaple_flag;
+	bool all_black_smaple_flag;
 
-	const int32_t ccd_mid_pos;
-
-	int all_white_smaple_flag;
-	int all_black_smaple_flag;
-
-	int first_straight_line_flag;
+	bool first_straight_line_flag;
 
 	int current_mid_error_pos;
 	int last_sample_error_pos;
 	int previous_mid_error_pos;
 
-	int current_dir_error;
-	int previous_dir_error;
-	int difference_dir_error;
-
 	int current_1st_left_edge;
 	int current_1st_right_edge;
 
-	int current_edge_middle_distance;
-
-	int detect_left_flag;
-	int detect_right_flag;
+	bool detect_left_flag;
+	bool detect_right_flag;
 
 	libutil::PidController<int, int> m_servo_pid;
 };

@@ -120,7 +120,7 @@ void LinearCcdApp::SpeedControlPass()
 	{
 		uint16_t power = m_speed_state.pid.Calc(time,
 				m_car.GetEncoderCount());
-		power = 1500;
+		power = 1250;
 		m_car.SetMotorPower(power);
 
 #ifdef DEBUG

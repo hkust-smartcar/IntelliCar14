@@ -17,21 +17,23 @@
 using namespace std;
 
 #define VALID_PIXEL 244
-#define SERVO_KP 3.15f
-#define SERVO_KD 1.50f
+#define SERVO_KP 1.55f
+#define SERVO_KD 1.00f
 
 namespace linear_ccd
 {
 
 DirControlAlgorithm::DirControlAlgorithm(Car *car)
 		: m_car(car),
-		  left_start_length(50),
-		  right_start_length(50),
+		  left_start_length(60),
+		  right_start_length(60),
 
 		  ccd_mid_pos(122),
 
 		  all_white_smaple_flag(0),
 		  all_black_smaple_flag(0),
+
+		  first_straight_line_flag(0),
 
 		  current_mid_error_pos(122),
 		  last_sample_error_pos(122),
@@ -87,8 +89,17 @@ void DirControlAlgorithm::Control(const bool *ccd_data)
 	{
 		if_case = 1;
 		current_mid_error_pos = (current_1st_left_edge + current_1st_right_edge) / 2;
-		//left_start_length = current_mid_error_pos - current_1st_left_edge;
-		//right_start_length = current_mid_error_pos + current_1st_right_edge;
+
+		/*if(first_straight_line_flag == 0){
+			left_start_length = current_mid_error_pos - current_1st_left_edge;
+			right_start_length =  current_1st_right_edge - current_mid_error_pos;
+			first_straight_line_flag=1;
+		}
+
+		printf("left_start_length: %d\n", left_start_length);
+		printf("right_start_length: %d\n", right_start_length);
+		*/
+
 	}
 
 	/* ||||--------------------------------||||
@@ -156,7 +167,7 @@ void DirControlAlgorithm::Control(const bool *ccd_data)
 		m_car->TurnLeft(std::min<int>(abs(current_dir_error*SERVO_KP+difference_dir_error*SERVO_KD), 100));
 	} else // turn right
 	{
-		m_car->TurnRight(std::min<int>(abs(current_dir_error*SERVO_KP+difference_dir_error*SERVO_KD), 100));
+		m_car->TurnRight(std::min<int>(abs(current_dir_error*SERVO_KP-difference_dir_error*SERVO_KD), 100));
 	}
 
 	/*if (current_mid_error_pos < 0)
@@ -164,7 +175,7 @@ void DirControlAlgorithm::Control(const bool *ccd_data)
 		__BREAKPOINT();
 	}*/
 	last_sample_error_pos = current_mid_error_pos;
-	current_edge_middle_distance = current_1st_right_edge - current_1st_left_edge;
+	//current_edge_middle_distance = current_1st_right_edge - current_1st_left_edge;
 }
 
 void DirControlAlgorithm::CcdScanAllWhiteOrAllBlackSample(const bool *ccd_data)

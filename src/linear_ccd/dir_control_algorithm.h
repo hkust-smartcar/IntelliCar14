@@ -33,13 +33,15 @@ private:
 
 	Car *m_car;
 
-	int32_t left_start_length;
-	int32_t right_start_length;
+	int left_start_length;
+	int right_start_length;
 
 	const int32_t ccd_mid_pos;
 
 	int all_white_smaple_flag;
 	int all_black_smaple_flag;
+
+	int first_straight_line_flag;
 
 	int current_mid_error_pos;
 	int last_sample_error_pos;
@@ -52,7 +54,7 @@ private:
 	int current_1st_left_edge;
 	int current_1st_right_edge;
 
-	int32_t current_edge_middle_distance;
+	int current_edge_middle_distance;
 
 	int detect_left_flag;
 	int detect_right_flag;

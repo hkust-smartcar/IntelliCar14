@@ -165,16 +165,6 @@ void DirControlAlgorithm::Control(const bool *ccd_data)
 
 	printf("if_case :%d\n", if_case);
 
-	// 0 - 100 -> 90 ~ 50(turn left)
-	// 0 - 100 -> 90 ~ 130(turn right)
-	if (current_dir_error > 0) // turn left
-	{
-		m_car->TurnLeft(std::min<int>(abs(current_dir_error*SERVO_KP+difference_dir_error*SERVO_KD), 100));
-	} else // turn right
-	{
-		m_car->TurnRight(std::min<int>(abs(current_dir_error*SERVO_KP-difference_dir_error*SERVO_KD), 100));
-	}
-
 	m_servo_pid.Print("servo");
 	m_car->SetTurning(m_servo_pid.Calc(current_mid_error_pos));
 

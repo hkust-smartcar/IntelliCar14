@@ -96,8 +96,8 @@ void DirControlAlgorithm::Control(const bool *ccd_data)
 			first_straight_line_flag = true;
 		}
 
-		printf("left_start_length: %d\n", left_start_length);
-		printf("right_start_length: %d\n", right_start_length);
+		LOG_D("left_start_length: %d\n", left_start_length);
+		LOG_D("right_start_length: %d\n", right_start_length);
 		*/
 
 	}
@@ -150,7 +150,7 @@ void DirControlAlgorithm::Control(const bool *ccd_data)
 		//current_mid_error_pos = ccd_mid_pos + current_dir_error;
 	}
 
-	printf("if_case :%d\n", if_case);
+	LOG_D("if_case :%d\n", if_case);
 
 	m_servo_pid.Print("servo");
 	m_car->SetTurning(m_servo_pid.Calc(current_mid_error_pos));

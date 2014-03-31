@@ -29,7 +29,7 @@ namespace linear_ccd
 {
 
 Car::Car()
-		: m_encoder(0), m_leds{Led(0), Led(1), Led(2), Led(3)}, m_motor(0),
+		: m_encoder(1), m_leds{Led(0), Led(1), Led(2), Led(3)}, m_motor(0),
 		  m_servo(0)
 {
 	m_motor.SetPower(0);

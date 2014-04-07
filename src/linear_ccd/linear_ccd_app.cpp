@@ -29,7 +29,7 @@
 using libutil::Clock;
 
 #define LED_FREQ 250
-#define SERVO_FREQ 4
+#define SERVO_FREQ 9
 #define SPEED_CTRL_FREQ 20
 
 #define K_ID 0
@@ -73,8 +73,6 @@ LinearCcdApp::LinearCcdApp()
 		: m_dir_control(&m_car), m_is_stop(false)
 {
 	m_instance = this;
-	gpio_init(PTC13, GPI, 1);
-	gpio_init(PTC7, GPI, 1);
 }
 
 LinearCcdApp::~LinearCcdApp()
@@ -85,6 +83,7 @@ LinearCcdApp::~LinearCcdApp()
 void LinearCcdApp::Run()
 {
 	__g_fwrite_handler = FwriteHandler;
+	DELAY_MS(2000);
 	libutil::Clock::Init();
 	m_car.SetMotorPower(CONSTANTS[K_ID].pwm);
 
@@ -100,13 +99,18 @@ void LinearCcdApp::Run()
 		DELAY_MS(25);
 		*/
 		ServoPass();
+		DetectStopLine();
 		if (!m_is_stop)
 		{
 			SpeedControlPass();
 		}
 		else
 		{
+			DELAY_MS(250);
+			m_car.SetMotorPower(-1800);
+			DELAY_MS(500);
 			m_car.StopMotor();
+			return;
 		}
 		LedPass();
 	}
@@ -132,7 +136,6 @@ void LinearCcdApp::ServoPass()
 	{
 		const bool *ccd_data = m_car.SampleCcd();
 		m_dir_control.Control(ccd_data);
-		DetectStopLine();
 
 #ifdef DEBUG
 		// Send CCD data through UART
@@ -185,7 +188,7 @@ int LinearCcdApp::FwriteHandler(int, char *ptr, int len)
 
 void LinearCcdApp::DetectStopLine()
 {
-	if (gpio_get(PTC7) && gpio_get(PTC13))
+	if (!m_car.IsLightSensorDetected(0) && !m_car.IsLightSensorDetected(1))
 	{
 		m_is_stop = true;
 	}

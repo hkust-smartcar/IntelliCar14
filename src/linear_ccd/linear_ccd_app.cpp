@@ -29,11 +29,6 @@ using libutil::Clock;
 #define SERVO_FREQ 9
 #define SPEED_CTRL_FREQ 20
 
-#define SPEED_SP 600
-#define SPEED_KP 2.8f
-#define SPEED_KI 0.0f
-#define SPEED_KD 8.0f
-
 #define K_ID 0
 
 namespace linear_ccd
@@ -146,7 +141,6 @@ void LinearCcdApp::SpeedControlPass()
 {
 	const Clock::ClockInt time = Clock::Time();
 	if (Clock::TimeDiff(time, m_speed_state.prev_run) >= SPEED_CTRL_FREQ)
-
 	{
 		const uint32_t count = m_car.GetEncoderCount();
 		const Uint count_diff = libsc::Encoder::CountDiff(count,

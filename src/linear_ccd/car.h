@@ -24,17 +24,14 @@ class Car
 public:
 	Car();
 
-
 	/**
 	 * Start the wheel motor
 	 *
-	 * @param is_forward Is going forward or not
-	 * @param power Power scale in [-10000, 10000]
+	 * @param power
 	 * @see SetMotorPower()
 	 */
 	void StartMotor(const int16_t power)
 	{
-		SetMotorDirection(is_forward);
 		SetMotorPower(power);
 	}
 

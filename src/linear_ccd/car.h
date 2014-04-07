@@ -12,6 +12,7 @@
 #include <libsc/com/bluetooth.h>
 #include <libsc/com/encoder.h>
 #include <libsc/com/led.h>
+#include <libsc/com/light_sensor.h>
 #include <libsc/com/linear_ccd.h>
 #include <libsc/com/motor.h>
 #include <libsc/com/trs_d05.h>
@@ -114,12 +115,18 @@ public:
 
 	uint8_t GetRightPercentge() const;
 
+	bool IsLightSensorDetected(const uint8_t id)
+	{
+		return m_light_sensors[id].IsDetected();
+	}
+
 private:
 	void SetMotorDirection(const bool is_forward);
 
 	libsc::Bluetooth m_bt;
 	libsc::Encoder m_encoder;
 	libsc::Led m_leds[4];
+	libsc::LightSensor m_light_sensors[2];
 	libsc::LinearCcd m_ccd;
 	libsc::Motor m_motor;
 	libsc::TrsD05 m_servo;

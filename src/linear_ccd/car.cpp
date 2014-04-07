@@ -11,6 +11,7 @@
 #include <libsc/com/bluetooth.h>
 #include <libsc/com/encoder.h>
 #include <libsc/com/led.h>
+#include <libsc/com/light_sensor.h>
 #include <libsc/com/linear_ccd.h>
 #include <libsc/com/motor.h>
 #include <libsc/com/servo.h>
@@ -29,7 +30,8 @@ namespace linear_ccd
 {
 
 Car::Car()
-		: m_encoder(0), m_leds{Led(0), Led(1), Led(2), Led(3)}, m_motor(0),
+		: m_encoder(0), m_leds{Led(0), Led(1), Led(2), Led(3)},
+		  m_light_sensors{LightSensor(0), LightSensor(1)}, m_motor(0),
 		  m_servo(0)
 {
 	SetMotorPower(0);

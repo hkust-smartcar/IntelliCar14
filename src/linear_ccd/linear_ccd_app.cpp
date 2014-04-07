@@ -26,7 +26,7 @@
 using libutil::Clock;
 
 #define LED_FREQ 250
-#define SERVO_FREQ 9
+#define SERVO_FREQ 4
 #define SPEED_CTRL_FREQ 20
 
 #define SPEED_SP 600
@@ -72,7 +72,7 @@ LinearCcdApp::SpeedState::SpeedState()
 {}
 
 LinearCcdApp::LinearCcdApp()
-		: m_dir_control(&m_car)
+		: m_dir_control(&m_car), m_is_stop(false)
 {
 	m_instance = this;
 }
@@ -100,7 +100,14 @@ void LinearCcdApp::Run()
 		DELAY_MS(25);
 		*/
 		ServoPass();
-		SpeedControlPass();
+		if (!m_is_stop)
+		{
+			SpeedControlPass();
+		}
+		else
+		{
+			m_car.StopMotor();
+		}
 		LedPass();
 	}
 }
@@ -125,7 +132,7 @@ void LinearCcdApp::ServoPass()
 	{
 		const bool *ccd_data = m_car.SampleCcd();
 		m_dir_control.Control(ccd_data);
-
+		DetectStopLine(ccd_data);
 
 #ifdef DEBUG
 		// Send CCD data through UART
@@ -175,6 +182,86 @@ int LinearCcdApp::FwriteHandler(int, char *ptr, int len)
 		m_instance->m_car.UartSendBuffer((const uint8_t*)ptr, len);
 	}
 	return len;
+}
+
+
+void LinearCcdApp::DetectStopLine(const bool *ccd_data)
+{
+	int first_region_black_counter = 0;
+	int second_region_white_counter = 0;
+	int third_region_black_counter = 0;
+	int fourth_region_white_counter = 0;
+	int fifth_region_black_counter = 0;
+	int sixth_region_white_counter = 0;
+	int seventh_region_black_counter = 0;
+
+	int target_pixel = 1;
+
+	for (int i = 0; i < 55; ++i)
+	{
+		if (ccd_data[i])
+		{
+			++first_region_black_counter;
+		}
+	}
+
+	for (int i = 56; i < 80; ++i)
+	{
+		if (!ccd_data[i])
+		{
+			++second_region_white_counter;
+		}
+	}
+
+	for (int i = 81; i < 100; ++i)
+	{
+		if (ccd_data[i])
+		{
+			++third_region_black_counter;
+		}
+	}
+
+	for (int i = 101; i < 130; ++i)
+	{
+		if (!ccd_data[i])
+		{
+			++fourth_region_white_counter;
+		}
+	}
+
+	for (int i = 131; i < 155; ++i)
+	{
+		if (ccd_data[i])
+		{
+			++fifth_region_black_counter;
+		}
+	}
+
+	for (int i = 156; i < 185; ++i)
+	{
+		if (!ccd_data[i])
+		{
+			++sixth_region_white_counter;
+		}
+	}
+
+	for (int i = 186; i < 244; ++i)
+	{
+		if (ccd_data[i])
+		{
+			++seventh_region_black_counter;
+		}
+	}
+
+	if(		first_region_black_counter >= target_pixel  &&
+			second_region_white_counter >= target_pixel &&
+			third_region_black_counter >= target_pixel  &&
+			fourth_region_white_counter >= target_pixel &&
+			fifth_region_black_counter >= target_pixel  &&
+			sixth_region_white_counter >= target_pixel  &&
+			seventh_region_black_counter >= target_pixel){
+		m_is_stop = true;
+	}
 }
 
 }

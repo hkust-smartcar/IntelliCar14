@@ -61,6 +61,7 @@ private:
 	void LedPass();
 	void ServoPass();
 	void SpeedControlPass();
+	void DetectStopLine(const bool *ccd_data);
 
 	Car m_car;
 
@@ -69,6 +70,7 @@ private:
 	SpeedState m_speed_state;
 
 	DirControlAlgorithm m_dir_control;
+	bool m_is_stop;
 
 	static LinearCcdApp *m_instance;
 };

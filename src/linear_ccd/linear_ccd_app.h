@@ -52,6 +52,8 @@ private:
 	{
 		libutil::Clock::ClockInt prev_run;
 		libutil::PidController<uint32_t, uint16_t> pid;
+		uint32_t prev_count;
+		int prev_power;
 
 		SpeedState();
 	};

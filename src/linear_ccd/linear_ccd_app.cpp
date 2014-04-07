@@ -10,6 +10,7 @@
 #include <syscall.h>
 
 #include <cstdint>
+#include <MK60_gpio.h>
 
 #include <libsc/com/linear_ccd.h>
 #include <libutil/clock.h>
@@ -28,8 +29,8 @@ using libutil::Clock;
 #define SERVO_FREQ 9
 #define SPEED_CTRL_FREQ 100
 
-#define SPEED_SP 300
-#define SPEED_KP 2.666f
+#define SPEED_SP 600
+#define SPEED_KP 2.8f
 #define SPEED_KI 0.0f
 #define SPEED_KD 8.0f
 
@@ -117,10 +118,21 @@ void LinearCcdApp::SpeedControlPass()
 {
 	const Clock::ClockInt time = Clock::Time();
 	if (Clock::TimeDiff(time, m_speed_state.prev_run) >= SPEED_CTRL_FREQ)
-	{
+	{	/*
+		const uint32_t count = m_car.GetEncoderCount();
+		const uint32_t count_diff = libsc::Encoder::CountDiff(count,
+				m_speed_state.prev_count);
+		int16_t power_diff = ((8000 - (int)count_diff)
+				* (2345.0f / 10000.0f));
+		power_diff = std::min<int16_t>(std::max<int16_t>(power_diff, -600), 600);
+
+		m_car.AddMotorPower(power_diff);
+		m_speed_state.prev_count = count;
+		m_speed_state.prev_power = m_car.GetMotorPower();
+		*/
 		uint16_t power = m_speed_state.pid.Calc(time,
-				m_car.GetEncoderCount());
-		power = 1250;
+		m_car.GetEncoderCount());
+		power = 1500;
 		m_car.SetMotorPower(power);
 
 #ifdef DEBUG

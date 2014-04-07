@@ -20,8 +20,8 @@
 using namespace std;
 
 #define VALID_PIXEL 244
-#define SERVO_KP 1.55f
-#define SERVO_KD 1.00f
+#define SERVO_KP 1.315f //1.55f perfect for power = 1250
+#define SERVO_KD 1.000f //1.00f perfect for power = 1250
 
 #define CCD_MID_POS 122
 #define START_LENGTH_L 60

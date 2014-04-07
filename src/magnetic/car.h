@@ -9,7 +9,9 @@
 #ifndef MAGNETIC_CAR_H_
 #define MAGNETIC_CAR_H_
 
+#include <libsc/com/futaba_s3010.h>
 #include <libsc/com/led.h>
+#include <libsc/com/motor.h>
 #include <libsc/com/uart_device.h>
 
 namespace magnetic
@@ -19,6 +21,48 @@ class Car
 {
 public:
 	Car();
+
+	/**
+	 * Start the wheel motor
+	 *
+	 * @param is_forward Is going forward or not
+	 * @param power Power scale in [0, 1000]
+	 */
+	void StartMotor(const bool is_forward, const uint16_t power)
+	{
+		SetMotorDirection(is_forward);
+		SetMotorPower(power);
+	}
+
+	void StopMotor()
+	{
+		SetMotorPower(0);
+	}
+
+	void SetMotorDirection(const bool is_forward);
+	void SetMotorPower(const uint16_t power)
+	{
+		m_motor[0].SetPower(power);
+		m_motor[1].SetPower(power);
+	}
+
+	void AddMotorPower(const uint16_t factor)
+	{
+		m_motor[0].AddPower(factor);
+		m_motor[1].AddPower(factor);
+	}
+
+	void AddMotorPowerTil(const uint16_t factor, const uint16_t max);
+	void DropMotorPower(const uint16_t factor);
+	void DropMotorPowerTil(const uint16_t factor, const uint16_t min);
+
+	/**
+	 * Set the turning percentage, negative input means turning left
+	 *
+	 * @param percentage Specifying how aggressively should the car turn,
+	 * in [-100, 100], where passing 0 basically means going straight
+	 */
+	void SetTurning(const int16_t percentage);
 
 	/**
 	 * Switch on/off the LEDs
@@ -47,8 +91,23 @@ public:
 		return m_uart.PeekChar(out_ch);
 	}
 
+	bool IsMotorForward() const;
+	bool IsMotorStop() const
+	{
+		return !m_motor[0].GetPower();
+	}
+
+	uint16_t GetMotorPower() const
+	{
+		return m_motor[0].GetPower();
+	}
+
+	uint8_t GetRightPercentge() const;
+
 private:
+	libsc::FutabaS3010 m_servo;
 	libsc::Led m_leds[4];
+	libsc::Motor m_motor[2];
 	libsc::UartDevice m_uart;
 };
 

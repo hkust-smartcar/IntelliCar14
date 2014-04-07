@@ -29,18 +29,24 @@ namespace linear_ccd
 {
 
 Car::Car()
-		: m_encoder(1), m_leds{Led(0), Led(1), Led(2), Led(3)}, m_motor(0),
+		: m_encoder(0), m_leds{Led(0), Led(1), Led(2), Led(3)}, m_motor(0),
 		  m_servo(0)
 {
-	m_motor.SetPower(0);
-	SetMotorDirection(true);
+	SetMotorPower(0);
 	m_servo.SetDegree(SERVO_MID_DEGREE);
 	m_bt.StartReceive();
 }
 
 void Car::SetMotorDirection(const bool is_forward)
 {
-	m_motor.SetClockwise(!is_forward);
+	m_motor.SetClockwise(is_forward);
+}
+
+void Car::SetMotorPower(const int16_t power)
+{
+	const uint16_t _power = libutil::Clamp<uint16_t>(0, abs(power), 10000);
+	SetMotorDirection((power >= 0));
+	m_motor.SetPower(_power);
 }
 
 void Car::AddMotorPowerTil(const uint16_t factor, const uint16_t max)

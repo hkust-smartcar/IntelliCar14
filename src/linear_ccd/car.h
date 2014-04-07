@@ -29,9 +29,10 @@ public:
 	 * Start the wheel motor
 	 *
 	 * @param is_forward Is going forward or not
-	 * @param power Power scale in [0, 1000]
+	 * @param power Power scale in [-10000, 10000]
+	 * @see SetMotorPower()
 	 */
-	void StartMotor(const bool is_forward, const uint16_t power)
+	void StartMotor(const int16_t power)
 	{
 		SetMotorDirection(is_forward);
 		SetMotorPower(power);
@@ -42,11 +43,12 @@ public:
 		SetMotorPower(0);
 	}
 
-	void SetMotorDirection(const bool is_forward);
-	void SetMotorPower(const uint16_t power)
-	{
-		m_motor.SetPower(power);
-	}
+	/**
+	 * Set the power of the motor, a negative power will drive the car backwards
+	 *
+	 * @param power Power scale in [-10000, 10000]
+	 */
+	void SetMotorPower(const int16_t power);
 
 	void AddMotorPower(const uint16_t factor)
 	{
@@ -116,6 +118,8 @@ public:
 	uint8_t GetRightPercentge() const;
 
 private:
+	void SetMotorDirection(const bool is_forward);
+
 	libsc::Bluetooth m_bt;
 	libsc::Encoder m_encoder;
 	libsc::Led m_leds[4];

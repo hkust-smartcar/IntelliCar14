@@ -151,7 +151,7 @@ void LinearCcdApp::SpeedControlPass()
 				+ CONSTANTS[K_ID].pwm;
 		//LOG_I("Power: %d", power);
 		//printf("%u\n", count_diff);
-		m_car.SetMotorPower(libutil::Clamp<int>(0, power, 10000));
+		m_car.SetMotorPower(libutil::Clamp<int>(-10000, power, 10000));
 
 #ifdef DEBUG
 		// Send speed PID through UART

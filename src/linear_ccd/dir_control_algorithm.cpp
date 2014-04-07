@@ -21,7 +21,7 @@ using namespace std;
 
 #define VALID_PIXEL 244
 #define SERVO_KP 1.55f
-#define SERVO_KD 1.00f
+#define SERVO_KD 0.00f
 
 #define CCD_MID_POS 122
 #define START_LENGTH_L 60
@@ -152,7 +152,7 @@ void DirControlAlgorithm::Control(const bool *ccd_data)
 
 	LOG_D("if_case :%d\n", if_case);
 
-	m_servo_pid.Print("servo");
+	//m_servo_pid.Print("servo");
 	m_car->SetTurning(m_servo_pid.Calc(current_mid_error_pos));
 
 	/*

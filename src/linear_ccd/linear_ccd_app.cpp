@@ -6,11 +6,14 @@
  * Copyright (c) 2014 HKUST SmartCar Team
  */
 
+#include <mini_common.h>
 #include <hw_common.h>
 #include <syscall.h>
 
 #include <cstdint>
 #include <cstdlib>
+
+#include <MK60_gpio.h>
 
 #include <libsc/com/linear_ccd.h>
 #include <libutil/clock.h>
@@ -70,6 +73,8 @@ LinearCcdApp::LinearCcdApp()
 		: m_dir_control(&m_car), m_is_stop(false)
 {
 	m_instance = this;
+	gpio_init(PTC13, GPI, 1);
+	gpio_init(PTC7, GPI, 1);
 }
 
 LinearCcdApp::~LinearCcdApp()
@@ -127,7 +132,7 @@ void LinearCcdApp::ServoPass()
 	{
 		const bool *ccd_data = m_car.SampleCcd();
 		m_dir_control.Control(ccd_data);
-		DetectStopLine(ccd_data);
+		DetectStopLine();
 
 #ifdef DEBUG
 		// Send CCD data through UART
@@ -178,82 +183,10 @@ int LinearCcdApp::FwriteHandler(int, char *ptr, int len)
 	return len;
 }
 
-
-void LinearCcdApp::DetectStopLine(const bool *ccd_data)
+void LinearCcdApp::DetectStopLine()
 {
-	int first_region_black_counter = 0;
-	int second_region_white_counter = 0;
-	int third_region_black_counter = 0;
-	int fourth_region_white_counter = 0;
-	int fifth_region_black_counter = 0;
-	int sixth_region_white_counter = 0;
-	int seventh_region_black_counter = 0;
-
-	int target_pixel = 1;
-
-	for (int i = 0; i < 55; ++i)
+	if (gpio_get(PTC7) && gpio_get(PTC13))
 	{
-		if (ccd_data[i])
-		{
-			++first_region_black_counter;
-		}
-	}
-
-	for (int i = 56; i < 80; ++i)
-	{
-		if (!ccd_data[i])
-		{
-			++second_region_white_counter;
-		}
-	}
-
-	for (int i = 81; i < 100; ++i)
-	{
-		if (ccd_data[i])
-		{
-			++third_region_black_counter;
-		}
-	}
-
-	for (int i = 101; i < 130; ++i)
-	{
-		if (!ccd_data[i])
-		{
-			++fourth_region_white_counter;
-		}
-	}
-
-	for (int i = 131; i < 155; ++i)
-	{
-		if (ccd_data[i])
-		{
-			++fifth_region_black_counter;
-		}
-	}
-
-	for (int i = 156; i < 185; ++i)
-	{
-		if (!ccd_data[i])
-		{
-			++sixth_region_white_counter;
-		}
-	}
-
-	for (int i = 186; i < 244; ++i)
-	{
-		if (ccd_data[i])
-		{
-			++seventh_region_black_counter;
-		}
-	}
-
-	if(		first_region_black_counter >= target_pixel  &&
-			second_region_white_counter >= target_pixel &&
-			third_region_black_counter >= target_pixel  &&
-			fourth_region_white_counter >= target_pixel &&
-			fifth_region_black_counter >= target_pixel  &&
-			sixth_region_white_counter >= target_pixel  &&
-			seventh_region_black_counter >= target_pixel){
 		m_is_stop = true;
 	}
 }

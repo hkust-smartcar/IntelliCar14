@@ -61,7 +61,7 @@ private:
 	void LedPass();
 	void ServoPass();
 	void SpeedControlPass();
-	void DetectStopLine(const bool *ccd_data);
+	void DetectStopLine();
 
 	Car m_car;
 

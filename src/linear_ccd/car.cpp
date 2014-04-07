@@ -46,7 +46,7 @@ void Car::SetMotorPower(const int16_t power)
 {
 	const uint16_t _power = libutil::Clamp<uint16_t>(0, abs(power), 10000);
 	SetMotorDirection((power >= 0));
-	m_motor.SetPower(power);
+	m_motor.SetPower(_power);
 }
 
 void Car::AddMotorPowerTil(const uint16_t factor, const uint16_t max)

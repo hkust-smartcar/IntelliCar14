@@ -52,16 +52,20 @@ private:
 	{
 		libutil::Clock::ClockInt prev_run;
 
-		libutil::PidController<uint32_t, int> pid;
+		libutil::PidController<int32_t, int> pid;
 		uint32_t prev_count;
 
 		SpeedState();
 	};
 
+	void InitialStage();
+
 	void LedPass();
 	void ServoPass();
 	void SpeedControlPass();
 	void DetectStopLine();
+
+	void SetConstant(const bool is_straight);
 
 	Car m_car;
 
@@ -71,6 +75,8 @@ private:
 
 	DirControlAlgorithm m_dir_control;
 	bool m_is_stop;
+
+	uint8_t m_speed_choice;
 
 	static LinearCcdApp *m_instance;
 };

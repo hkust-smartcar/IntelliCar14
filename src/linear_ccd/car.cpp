@@ -8,7 +8,10 @@
 
 #include <cstdint>
 
+#include "linear_ccd/debug.h"
+
 #include <libsc/com/bluetooth.h>
+#include <libsc/com/button.h>
 #include <libsc/com/encoder.h>
 #include <libsc/com/led.h>
 #include <libsc/com/light_sensor.h>
@@ -20,7 +23,7 @@
 #include "linear_ccd/car.h"
 
 #define SERVO_MID_DEGREE 90
-#define SERVO_AMPLITUDE 56
+#define SERVO_AMPLITUDE 65
 #define SERVO_MAX_DEGREE (SERVO_MID_DEGREE + SERVO_AMPLITUDE)
 #define SERVO_MIN_DEGREE (SERVO_MID_DEGREE - SERVO_AMPLITUDE)
 
@@ -30,9 +33,9 @@ namespace linear_ccd
 {
 
 Car::Car()
-		: m_encoder(0), m_leds{Led(0), Led(1), Led(2), Led(3)},
-		  m_light_sensors{LightSensor(0), LightSensor(1)}, m_motor(0),
-		  m_servo(0)
+		: m_buttons{Button(0), Button(1), Button(2), Button(3)}, m_encoder(0),
+		  m_gyro(10), m_leds{Led(0), Led(1), Led(2), Led(3)},
+		  m_light_sensors{LightSensor(0), LightSensor(1)}, m_motor(0), m_servo(0)
 {
 	SetMotorPower(0);
 	m_servo.SetDegree(SERVO_MID_DEGREE);
@@ -85,9 +88,9 @@ bool Car::IsMotorForward() const
 	return !m_motor.IsClockwise();
 }
 
-uint8_t Car::GetRightPercentge() const
+int16_t Car::GetTurning() const
 {
-	return (m_servo.GetDegree() - SERVO_MIN_DEGREE) * 100 / (SERVO_AMPLITUDE * 2);
+	return (m_servo.GetDegree() - SERVO_MID_DEGREE) * 100 / SERVO_AMPLITUDE;
 }
 
 }

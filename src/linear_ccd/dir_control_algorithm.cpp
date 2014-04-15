@@ -11,8 +11,11 @@
 #include <cmath>
 #include <algorithm>
 
+#include "linear_ccd/debug.h"
+
 #include <libutil/pid_controller.h>
 #include <libutil/pid_controller.tcc>
+#include <libutil/misc.h>
 
 #include "linear_ccd/car.h"
 #include "linear_ccd/dir_control_algorithm.h"
@@ -20,49 +23,87 @@
 using namespace std;
 
 #define VALID_PIXEL 244
-#define SERVO_KP 1.55f
-#define SERVO_KD 0.00f
+#define VALID_OFFSET 6
 
 #define CCD_MID_POS 122
-#define START_LENGTH_L 60
-#define START_LENGTH_R 60
 
 namespace linear_ccd
 {
 
+namespace
+{
+
+struct ServoConstant
+{
+	float kp;
+	float ki;
+	float kd;
+	int start_l;
+	int start_r;
+};
+
+// The first one is being used when the motor is stopped (manual mode)
+constexpr ServoConstant CONSTANTS[] =
+{
+		//{0.0f, 0.0f, 0.0f, 0, 0},
+		{1.45f, 0.0f, 1.12f, 60, 60},
+		//
+		{1.2f, 0.0f, 0.0f, 62, 62},
+		{1.2f, 0.0f, 0.0f, 62, 62},
+		{1.2f, 0.0f, 0.0f, 62, 62},
+		{1.2f, 0.0f, 0.0f, 62, 62},
+
+		//{1.08f, 0.0f, 0.98f, 65, 65}, // Average
+		//{1.00f, 0.0f, 0.90f, 65, 65}, // Good
+		//{0.98f, 0.0f, 0.88f, 65, 65}, // Good
+		//{0.80f, 0.0f, 0.78f, 65, 65}, // Worst
+		//{1.275f, 0.0f, 0.88f, 45, 45},
+		{1.55f, 0.0f, 0.5f, 60, 60},
+		{3.05f, 0.0f, 1.0f, 60, 60},
+		{0.9f, 0.0f, 1.0f, 60, 60},
+		//{1.55f, 0.0f, 0.0f, 60, 60},
+		{0.0f, 0.0f, 0.0f, 0, 0},
+		{0.0f, 0.0f, 0.0f, 0, 0},
+		{0.0f, 0.0f, 0.0f, 0, 0},
+		{0.0f, 0.0f, 0.0f, 0, 0},
+};
+
+}
+
 DirControlAlgorithm::DirControlAlgorithm(Car *car)
 		: m_car(car),
+		  m_flat_gyro_angle(0),
 
 		  all_white_smaple_flag(false),
 		  all_black_smaple_flag(false),
 
-		  first_straight_line_flag(false),
-
-		  current_mid_error_pos(CCD_MID_POS),
 		  last_sample_error_pos(CCD_MID_POS),
-		  previous_mid_error_pos(CCD_MID_POS),
 
-		  current_1st_left_edge(VALID_PIXEL),
-		  current_1st_right_edge(0),
+		  m_servo_pid(CCD_MID_POS, CONSTANTS[0].kp, CONSTANTS[0].ki,
+				  CONSTANTS[0].kd),
 
-		  detect_left_flag(false),
-		  detect_right_flag(false),
-
-		  m_servo_pid(CCD_MID_POS, SERVO_KP, 0.0f, SERVO_KD)
+		  m_constant_choice(0)
 {}
 
 void DirControlAlgorithm::Control(const bool *ccd_data)
 {
-	ccd_data += 6;
+	if (DetectSlope())
+	{
+#ifdef DEBUG_PRINT_SLOPE
+		LOG_D("Slope (Angle: %f, Flat: %d)", m_car->GetGyroAngle(),
+				m_flat_gyro_angle);
+#endif
+		m_car->SetTurning(0);
+		return;
+	}
 
-	CcdScanAllWhiteOrAllBlackSample(ccd_data);
+	ccd_data += VALID_OFFSET;
+	ScanAllWhiteOrAllBlackSample(ccd_data);
 
-	detect_left_flag = false;
-	detect_right_flag = false;
-	current_1st_left_edge = VALID_PIXEL;
-	current_1st_right_edge = 0;
-
-	for (int i = last_sample_error_pos; i > 0; --i)
+	bool detect_left_flag = false;
+	int current_1st_left_edge = VALID_PIXEL;
+	for (int i = libutil::Clamp<int>(0, last_sample_error_pos, VALID_PIXEL - 1);
+			i >= 0; --i)
 	{ // scan from last_sample_error_pos to left edge
 		if (ccd_data[i])
 		{
@@ -72,7 +113,10 @@ void DirControlAlgorithm::Control(const bool *ccd_data)
 		}
 	}
 
-	for (int i = last_sample_error_pos; i < VALID_PIXEL; ++i)
+	bool detect_right_flag = false;
+	int current_1st_right_edge = 0;
+	for (int i = libutil::Clamp<int>(0, last_sample_error_pos, VALID_PIXEL - 1);
+			i < VALID_PIXEL; ++i)
 	{  // scan from last_sample_error_pos to right edge
 		if (ccd_data[i])
 		{
@@ -83,23 +127,18 @@ void DirControlAlgorithm::Control(const bool *ccd_data)
 	}
 
 	int if_case = 0;
+	int current_mid_error_pos = 0;
 	/* ||||--------------------------------|||| */
 	if (detect_left_flag && detect_right_flag)
 	{
-		if_case = 1;
+		if_case = 10;
 		current_mid_error_pos =
 				(current_1st_left_edge + current_1st_right_edge) / 2;
 
-		/*if(!first_straight_line_flag){
-			left_start_length = current_mid_error_pos - current_1st_left_edge;
-			right_start_length =  current_1st_right_edge - current_mid_error_pos;
-			first_straight_line_flag = true;
-		}
-
-		LOG_D("left_start_length: %d\n", left_start_length);
-		LOG_D("right_start_length: %d\n", right_start_length);
-		*/
-
+#ifdef DEBUG_PRINT_EDGE
+		LOG_D("Edge: %d | %d", current_mid_error_pos - current_1st_left_edge,
+				current_1st_right_edge - current_mid_error_pos);
+#endif
 	}
 
 	/* ||||--------------------------------||||
@@ -107,12 +146,24 @@ void DirControlAlgorithm::Control(const bool *ccd_data)
 	   |||||||||||||||||||||||--------------- */
 	else if (detect_left_flag && !detect_right_flag)
 	{
-		if_case = 2;
-		current_mid_error_pos = current_1st_left_edge + START_LENGTH_R;
-
+		/*
 		if (current_1st_left_edge == (VALID_PIXEL - 1))
 		{
+			if_case = 20;
 			current_mid_error_pos = CCD_MID_POS;
+		}
+		*/
+		if (current_1st_left_edge < CONSTANTS[m_constant_choice].start_l / 2)
+		{
+			// Possibly crossroad
+			if_case = 20;
+			current_mid_error_pos = CCD_MID_POS;
+		}
+		else
+		{
+			if_case = 21;
+			current_mid_error_pos = current_1st_left_edge
+					+ CONSTANTS[m_constant_choice].start_r;
 		}
 	}
 
@@ -121,39 +172,63 @@ void DirControlAlgorithm::Control(const bool *ccd_data)
 	   -----------------|||||||||||||||||||||| */
 	else if (!detect_left_flag && detect_right_flag)
 	{
-		if_case = 3;
-		current_mid_error_pos = current_1st_right_edge - START_LENGTH_L;
-
+		/*
 		if (current_1st_right_edge == 0)
 		{
+			if_case = 30;
 			current_mid_error_pos = CCD_MID_POS;
+		}
+		*/
+		if (current_1st_right_edge < CONSTANTS[m_constant_choice].start_r / 2)
+		{
+			// Possibly crossroad
+			if_case = 30;
+			current_mid_error_pos = CCD_MID_POS;
+		}
+		else
+		{
+			if_case = 31;
+			current_mid_error_pos = current_1st_right_edge
+					- CONSTANTS[m_constant_choice].start_l;
+			//LOG_D("current_1st_right_edge: %d", current_1st_right_edge);
 		}
 	}
 
 	else if (!detect_left_flag && !detect_right_flag)
 	{
-		if_case = 4;
+		if_case = 40;
 		current_mid_error_pos = CCD_MID_POS;
 	}
 
 	/* ---------------------------------------- (no middle noise) Cross road*/
 	if (all_white_smaple_flag)
 	{
-		if_case = 5;
+		if_case = 50;
 		current_mid_error_pos = CCD_MID_POS;
 	}
 
 	/* |||||||||||||||||||||||||||||||||||||||| (all black) */
-	if(all_black_smaple_flag)
+	if (all_black_smaple_flag)
 	{
-		if_case = 6;
+		if_case = 60;
 		//current_mid_error_pos = ccd_mid_pos + current_dir_error;
+		current_mid_error_pos = last_sample_error_pos;
 	}
 
-	LOG_D("if_case :%d\n", if_case);
+#ifdef DEBUG_PRINT_CASE
+	LOG_D("if_case :%d", if_case);
+#endif
+	//LOG_D("current_mid_error_pos: %d", current_mid_error_pos);
 
-	//m_servo_pid.Print("servo");
-	m_car->SetTurning(m_servo_pid.Calc(current_mid_error_pos));
+#ifdef DEBUG_PRINT_SERVO_PID
+	m_servo_pid.Print("servo");
+#endif
+
+	const int turning = m_servo_pid.Calc(current_mid_error_pos);
+#ifdef DEBUG_PRINT_TURNING
+	LOG_D("turning :%d", turning);
+#endif
+	m_car->SetTurning(turning);
 
 	/*
 	if (current_mid_error_pos < 0)
@@ -165,27 +240,42 @@ void DirControlAlgorithm::Control(const bool *ccd_data)
 	//current_edge_middle_distance = current_1st_right_edge - current_1st_left_edge;
 }
 
-void DirControlAlgorithm::CcdScanAllWhiteOrAllBlackSample(const bool *ccd_data)
+bool DirControlAlgorithm::DetectSlope()
 {
-	int white_counter = 0;
-	int black_counter = 0;
-	all_white_smaple_flag = false;
-	all_black_smaple_flag = false;
+	if (m_flat_gyro_angle == 0)
+	{
+		m_flat_gyro_angle = static_cast<int16_t>(m_car->GetGyroAngle());
+	}
+	m_car->UpdateGyro();
+	return (abs(m_car->GetGyroAngle() - m_flat_gyro_angle) >= 1500);
+}
 
-	for (int i = 0; i < VALID_PIXEL; ++i)
+void DirControlAlgorithm::ScanAllWhiteOrAllBlackSample(const bool *ccd_data)
+{
+	all_white_smaple_flag = true;
+	all_black_smaple_flag = true;
+
+	for (int i = 0; i < VALID_PIXEL
+			&& (all_black_smaple_flag || all_white_smaple_flag); ++i)
 	{
 		if (!ccd_data[i])
 		{
-			++white_counter;
+			all_black_smaple_flag = false;
 		}
 		else
 		{
-			++black_counter;
+			all_white_smaple_flag = false;
 		}
 	}
+}
 
-	all_white_smaple_flag = (white_counter == VALID_PIXEL);
-	all_black_smaple_flag = (black_counter == VALID_PIXEL);
+void DirControlAlgorithm::SetConstant(const int id)
+{
+	m_constant_choice = id + 1;
+	m_servo_pid.SetKp(CONSTANTS[id].kp);
+	m_servo_pid.SetKi(CONSTANTS[id].ki);
+	m_servo_pid.SetKd(CONSTANTS[id].kd);
+	m_servo_pid.Restart();
 }
 
 }

@@ -10,7 +10,9 @@
 #define LINEAR_CCD_CAR_H_
 
 #include <libsc/com/bluetooth.h>
+#include <libsc/com/button.h>
 #include <libsc/com/encoder.h>
+#include <libsc/com/gyroscope.h>
 #include <libsc/com/led.h>
 #include <libsc/com/light_sensor.h>
 #include <libsc/com/linear_ccd.h>
@@ -82,6 +84,16 @@ public:
 		return m_ccd.SampleData();
 	}
 
+	void UpdateEncoder()
+	{
+		m_encoder.Update();
+	}
+
+	void UpdateGyro()
+	{
+		m_gyro.Update();
+	}
+
 	void UartSendStr(const char *str)
 	{
 		m_bt.SendStr(str);
@@ -108,23 +120,51 @@ public:
 		return m_motor.GetPower();
 	}
 
-	uint32_t GetEncoderCount()
+	int16_t GetEncoderCount()
 	{
 		return m_encoder.GetCount();
 	}
 
-	uint8_t GetRightPercentge() const;
+	int16_t GetTurning() const;
+
+	/**
+	 * Return the state of all 4 buttons packed in 1 byte. If it's currently
+	 * down, the value will be 1, 0 otherwise
+	 *
+	 * @return
+	 */
+	uint8_t GetButtonState() const
+	{
+		uint8_t state = 0;
+		for (int i = 0; i < 4; ++i)
+		{
+			state |= ((m_buttons[i].IsDown() ? 1 : 0) << i);
+		}
+		return state;
+	}
 
 	bool IsLightSensorDetected(const uint8_t id)
 	{
 		return m_light_sensors[id].IsDetected();
 	}
 
+	float GetGyroAngle() const
+	{
+		return m_gyro.GetAverageAngle();
+	}
+
+	int16_t GetEncoderCount() const
+	{
+		return m_encoder.GetCount();
+	}
+
 private:
 	void SetMotorDirection(const bool is_forward);
 
 	libsc::Bluetooth m_bt;
+	libsc::Button m_buttons[4];
 	libsc::Encoder m_encoder;
+	libsc::Gyroscope m_gyro;
 	libsc::Led m_leds[4];
 	libsc::LightSensor m_light_sensors[2];
 	libsc::LinearCcd m_ccd;

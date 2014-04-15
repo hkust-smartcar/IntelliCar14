@@ -26,31 +26,27 @@ namespace linear_ccd
 class DirControlAlgorithm
 {
 public:
-	DirControlAlgorithm(Car *car);
+	explicit DirControlAlgorithm(Car *car);
 
 	void Control(const bool *ccd_data);
 
+	void SetConstant(const int id);
+
 private:
-	void CcdScanAllWhiteOrAllBlackSample(const bool *ccd_data);
+	bool DetectSlope();
+	void ScanAllWhiteOrAllBlackSample(const bool *ccd_data);
 
 	Car *m_car;
+	int16_t m_flat_gyro_angle;
 
 	bool all_white_smaple_flag;
 	bool all_black_smaple_flag;
 
-	bool first_straight_line_flag;
-
-	int current_mid_error_pos;
 	int last_sample_error_pos;
-	int previous_mid_error_pos;
 
-	int current_1st_left_edge;
-	int current_1st_right_edge;
+	libutil::PidController<int32_t, int32_t> m_servo_pid;
 
-	bool detect_left_flag;
-	bool detect_right_flag;
-
-	libutil::PidController<int, int> m_servo_pid;
+	uint8_t m_constant_choice;
 };
 
 }

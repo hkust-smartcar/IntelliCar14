@@ -40,7 +40,7 @@ struct SpeedConstant
 constexpr SpeedConstant CONSTANTS[] =
 {
 		{0, 0, 0.0f, 0.0f, 0.0f},
-		//
+
 		//{120, 1280, 52.0f, 0.0f, 5.2f},
 		//{265, 1380, 55.0f, 2.8f, 5.5f},
 		//{235, 1350, 55.0f, 3.0f, 5.5f},
@@ -86,10 +86,10 @@ constexpr SpeedConstant CONSTANTS[] =
 		//{290, 0, 106.5f, 0.0f, 27.5f},
 		//{330, 0, 106.5f, 0.0f, 27.5f},
 
-		{290, 0, 106.5f, 0.0f, 27.5f},
-		{290, 0, 106.5f, 0.0f, 27.5f},
-		{290, 0, 106.5f, 0.0f, 27.5f},
-		{290, 0, 106.5f, 0.0f, 27.5f},
+		{340, 0, 106.5f, 0.0f, 27.5f},
+		{340, 0, 106.5f, 0.0f, 27.5f},
+		{340, 0, 106.5f, 0.0f, 27.5f},
+		{340, 0, 106.5f, 0.0f, 27.5f},
 
 		{235, 0, 139.833f, 0.0f, 136.75f},
 		{235, 0, 139.833f, 0.0f, 136.75f},
@@ -118,6 +118,27 @@ constexpr SpeedConstant CONSTANTS[] =
 		{235, 1350, 55.0f, 0.0f, 5.5f},
 		{400, 1630, 65.0f, 0.0f, 6.5f},
 		{600, 2050, 95.0f, 0.0f, 9.5f},
+
+		// Successful trial
+		// Set 1
+		//PWM[0, 7k]
+		//turn threshold 35
+		//{235, 0, 106.5f, 0.0f, 27.5f},
+
+		// Set 2
+		//PWM[0, 7k]
+		//turn threshold 35
+		//{290, 0, 106.5f, 0.0f, 27.5f},
+
+		// Set 3
+		//PWM[-4k, 7k]
+		//turn threshold 35
+		//{305, 0, 106.5f, 0.0f, 27.5f}, // V. Good
+
+		// Set 4
+		//PWM[-4k, 7k]
+		//turn threshold 40
+		//{340, 0, 106.5f, 0.0f, 27.5f}, // Acceptable
 };
 
 //#define TURN_CONSTANTS CONSTANTS
@@ -125,6 +146,7 @@ constexpr SpeedConstant CONSTANTS[] =
 constexpr SpeedConstant TURN_CONSTANTS[] =
 {
 		{0, 0, 0.0f, 0.0f, 0.0f},
+
 		//{120, 1280, 52.0f, 0.0f, 5.2f},
 		//{265, 1380, 55.0f, 2.8f, 5.5f},
 		//{235, 1350, 55.0f, 3.0f, 5.5f},
@@ -132,14 +154,12 @@ constexpr SpeedConstant TURN_CONSTANTS[] =
 		//{360, 1560, 61.0f, 3.4f, 6.1f},
 
 		//{140, 0, 106.5f, 0.0f, 27.5f},
-		//{195, 0, 106.5f, 0.0f, 27.5f},
-		//{205, 0, 106.5f, 0.0f, 27.5f},
 		//{250, 0, 106.5f, 0.0f, 27.5f},
 
-		{205, 0, 106.5f, 0.0f, 27.5f},
-		{205, 0, 106.5f, 0.0f, 27.5f},
-		{205, 0, 106.5f, 0.0f, 27.5f},
-		{205, 0, 106.5f, 0.0f, 27.5f},
+		{225, 0, 106.5f, 0.0f, 27.5f},
+		{225, 0, 106.5f, 0.0f, 27.5f},
+		{225, 0, 106.5f, 0.0f, 27.5f},
+		{225, 0, 106.5f, 0.0f, 27.5f},
 
 		{480, 1720, 30.5f, 3.1f, 15.5f},
 		{480, 1720, 27.5f, 3.1f, 15.5f},
@@ -156,6 +176,27 @@ constexpr SpeedConstant TURN_CONSTANTS[] =
 		{235, 1350, 55.0f, 0.0f, 5.5f},
 		{400, 1630, 65.0f, 0.0f, 6.5f},
 		{600, 2050, 95.0f, 0.0f, 9.5f},
+
+		// Successful trial
+		// Set 1
+		//PWM[0, 7k]
+		//turn threshold 35
+		//{195, 0, 106.5f, 0.0f, 27.5f},
+
+		// Set 2
+		//PWM[0, 7k]
+		//turn threshold 35
+		//{205, 0, 106.5f, 0.0f, 27.5f},
+
+		// Set 3
+		//PWM[-4k, 7k]
+		//turn threshold 35
+		//{205, 0, 106.5f, 0.0f, 27.5f}, // V. Good
+
+		// Set 4
+		//PWM[-4k, 7k]
+		//turn threshold 40
+		//{225, 0, 106.5f, 0.0f, 27.5f}, // Acceptable
 };
 
 }
@@ -184,7 +225,7 @@ void SpeedControl1::Control(Car *car)
 #endif
 
 	int power;
-	if (abs(car->GetTurning()) <= 35)
+	if (abs(car->GetTurning()) <= 40)
 	{
 		UpdatePid(true);
 		power = m_pid.Calc(time, count) + CONSTANTS[m_mode].pwm;
@@ -213,7 +254,7 @@ void SpeedControl1::Control(Car *car)
 			m_is_startup = false;
 			//m_pid.Restart();
 		}
-		car->SetMotorPower(libutil::Clamp<int>(0, power, MOTOR_MAX_PWM));
+		car->SetMotorPower(libutil::Clamp<int>(-3000, power, MOTOR_MAX_PWM));
 	}
 
 #ifdef DEBUG

@@ -22,8 +22,8 @@
 
 #include "linear_ccd/car.h"
 
-#define SERVO_MID_DEGREE 90
-#define SERVO_AMPLITUDE 65
+#define SERVO_MID_DEGREE 95
+#define SERVO_AMPLITUDE 85
 #define SERVO_MAX_DEGREE (SERVO_MID_DEGREE + SERVO_AMPLITUDE)
 #define SERVO_MIN_DEGREE (SERVO_MID_DEGREE - SERVO_AMPLITUDE)
 
@@ -40,6 +40,7 @@ Car::Car()
 	SetMotorPower(0);
 	m_servo.SetDegree(SERVO_MID_DEGREE);
 	m_bt.StartReceive();
+	m_lcd.Clear(Lcd::GetRgb565(0x33, 0xb5, 0xe5));
 }
 
 void Car::SetMotorDirection(const bool is_forward)

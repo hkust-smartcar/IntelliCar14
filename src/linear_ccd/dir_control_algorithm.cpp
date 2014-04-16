@@ -2,7 +2,7 @@
  * dir_control_algorithm.cpp
  * Algorithm for direction control
  *
- * Author: Louis Mo
+ * Author: Louis Mo, Ming Tsang, Spartey Chen
  * Copyright (c) 2014 HKUST SmartCar Team
  */
 
@@ -19,6 +19,7 @@
 
 #include "linear_ccd/car.h"
 #include "linear_ccd/dir_control_algorithm.h"
+#include "linear_ccd/kalman.h"
 
 using namespace std;
 
@@ -46,12 +47,14 @@ struct ServoConstant
 constexpr ServoConstant CONSTANTS[] =
 {
 		//{0.0f, 0.0f, 0.0f, 0, 0},
-		{1.45f, 0.0f, 1.12f, 60, 60},
+		{1.55f, 0.0f, 0.0f, 62, 62},
 		//
-		{1.2f, 0.0f, 0.0f, 62, 62},
-		{1.2f, 0.0f, 0.0f, 62, 62},
-		{1.2f, 0.0f, 0.0f, 62, 62},
-		{1.2f, 0.0f, 0.0f, 62, 62},
+		{1.35f, 0.0f, 0.0f, 62, 62},
+		{1.38f, 0.0f, 0.0f, 62, 62},
+		{1.41f, 0.0f, 0.0f, 62, 62},
+		{1.44f, 0.0f, 0.0f, 62, 62},
+
+		//{1.2f, 0.0f, 0.0f, 62, 62}, // Good when speed SP=290
 
 		//{1.08f, 0.0f, 0.98f, 65, 65}, // Average
 		//{1.00f, 0.0f, 0.90f, 65, 65}, // Good
@@ -82,8 +85,15 @@ DirControlAlgorithm::DirControlAlgorithm(Car *car)
 		  m_servo_pid(CCD_MID_POS, CONSTANTS[0].kp, CONSTANTS[0].ki,
 				  CONSTANTS[0].kd),
 
-		  m_constant_choice(0)
+		  m_mode(0)
 {}
+
+void DirControlAlgorithm::OnFinishWarmUp(Car *car)
+{
+	kalman_filter_init(&m_gyro_filter, 0.005f, 0.05f, car->GetGyroAngle(), 1.0f);
+	m_flat_gyro_angle = static_cast<int16_t>(car->GetGyroAngle());
+	m_servo_pid.Restart();
+}
 
 void DirControlAlgorithm::Control(const bool *ccd_data)
 {
@@ -153,7 +163,7 @@ void DirControlAlgorithm::Control(const bool *ccd_data)
 			current_mid_error_pos = CCD_MID_POS;
 		}
 		*/
-		if (current_1st_left_edge < CONSTANTS[m_constant_choice].start_l / 2)
+		if (current_1st_left_edge < CONSTANTS[m_mode].start_l / 2)
 		{
 			// Possibly crossroad
 			if_case = 20;
@@ -163,7 +173,7 @@ void DirControlAlgorithm::Control(const bool *ccd_data)
 		{
 			if_case = 21;
 			current_mid_error_pos = current_1st_left_edge
-					+ CONSTANTS[m_constant_choice].start_r;
+					+ CONSTANTS[m_mode].start_r;
 		}
 	}
 
@@ -179,7 +189,7 @@ void DirControlAlgorithm::Control(const bool *ccd_data)
 			current_mid_error_pos = CCD_MID_POS;
 		}
 		*/
-		if (current_1st_right_edge < CONSTANTS[m_constant_choice].start_r / 2)
+		if (current_1st_right_edge < CONSTANTS[m_mode].start_r / 2)
 		{
 			// Possibly crossroad
 			if_case = 30;
@@ -189,7 +199,7 @@ void DirControlAlgorithm::Control(const bool *ccd_data)
 		{
 			if_case = 31;
 			current_mid_error_pos = current_1st_right_edge
-					- CONSTANTS[m_constant_choice].start_l;
+					- CONSTANTS[m_mode].start_l;
 			//LOG_D("current_1st_right_edge: %d", current_1st_right_edge);
 		}
 	}
@@ -242,12 +252,13 @@ void DirControlAlgorithm::Control(const bool *ccd_data)
 
 bool DirControlAlgorithm::DetectSlope()
 {
-	if (m_flat_gyro_angle == 0)
-	{
-		m_flat_gyro_angle = static_cast<int16_t>(m_car->GetGyroAngle());
-	}
 	m_car->UpdateGyro();
-	return (abs(m_car->GetGyroAngle() - m_flat_gyro_angle) >= 1500);
+	float filter = m_car->GetGyroAngle();
+	kalman_filtering(&m_gyro_filter, &filter, 1);
+#ifdef DEBUG_PRINT_GYRO
+	printf("%f\n", filter);
+#endif
+	return (abs(filter - m_flat_gyro_angle) >= 2500);
 }
 
 void DirControlAlgorithm::ScanAllWhiteOrAllBlackSample(const bool *ccd_data)
@@ -269,12 +280,12 @@ void DirControlAlgorithm::ScanAllWhiteOrAllBlackSample(const bool *ccd_data)
 	}
 }
 
-void DirControlAlgorithm::SetConstant(const int id)
+void DirControlAlgorithm::SetMode(const Uint mode)
 {
-	m_constant_choice = id + 1;
-	m_servo_pid.SetKp(CONSTANTS[id].kp);
-	m_servo_pid.SetKi(CONSTANTS[id].ki);
-	m_servo_pid.SetKd(CONSTANTS[id].kd);
+	m_mode = mode;
+	m_servo_pid.SetKp(CONSTANTS[m_mode].kp);
+	m_servo_pid.SetKi(CONSTANTS[m_mode].ki);
+	m_servo_pid.SetKd(CONSTANTS[m_mode].kd);
 	m_servo_pid.Restart();
 }
 

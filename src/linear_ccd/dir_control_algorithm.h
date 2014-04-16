@@ -2,7 +2,7 @@
  * dir_control_algorithm.h
  * Algorithm for direction control
  *
- * Author: Louis Mo
+ * Author: Louis Mo, Ming Tsang, Spartey Chen
  * Copyright (c) 2014 HKUST SmartCar Team
  */
 
@@ -12,6 +12,8 @@
 #include <cstdint>
 
 #include <libutil/pid_controller.h>
+
+#include "linear_ccd/kalman.h"
 
 namespace linear_ccd
 {
@@ -28,9 +30,9 @@ class DirControlAlgorithm
 public:
 	explicit DirControlAlgorithm(Car *car);
 
+	void OnFinishWarmUp(Car *car);
 	void Control(const bool *ccd_data);
-
-	void SetConstant(const int id);
+	void SetMode(const Uint mode);
 
 private:
 	bool DetectSlope();
@@ -45,8 +47,9 @@ private:
 	int last_sample_error_pos;
 
 	libutil::PidController<int32_t, int32_t> m_servo_pid;
+	kalman_filter m_gyro_filter;
 
-	uint8_t m_constant_choice;
+	uint8_t m_mode;
 };
 
 }

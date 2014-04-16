@@ -13,6 +13,7 @@
 #include <libsc/com/button.h>
 #include <libsc/com/encoder.h>
 #include <libsc/com/gyroscope.h>
+#include <libsc/com/lcd.h>
 #include <libsc/com/led.h>
 #include <libsc/com/light_sensor.h>
 #include <libsc/com/linear_ccd.h>
@@ -109,6 +110,12 @@ public:
 		return m_bt.PeekChar(out_ch);
 	}
 
+	void LcdDrawGrayscalePixelBuffer(const uint8_t x, const uint8_t y,
+			const uint8_t w, const uint8_t h, const uint8_t *pixel)
+	{
+		m_lcd.DrawGrayscalePixelBuffer(x, y, w, h, pixel);
+	}
+
 	bool IsMotorForward() const;
 	bool IsMotorStop() const
 	{
@@ -165,6 +172,7 @@ private:
 	libsc::Button m_buttons[4];
 	libsc::Encoder m_encoder;
 	libsc::Gyroscope m_gyro;
+	libsc::Lcd m_lcd;
 	libsc::Led m_leds[4];
 	libsc::LightSensor m_light_sensors[2];
 	libsc::LinearCcd m_ccd;

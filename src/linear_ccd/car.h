@@ -12,6 +12,7 @@
 #include <libsc/com/bluetooth.h>
 #include <libsc/com/encoder.h>
 #include <libsc/com/led.h>
+#include <libsc/com/light_sensor.h>
 #include <libsc/com/linear_ccd.h>
 #include <libsc/com/motor.h>
 #include <libsc/com/trs_d05.h>
@@ -24,16 +25,14 @@ class Car
 public:
 	Car();
 
-
 	/**
 	 * Start the wheel motor
 	 *
-	 * @param is_forward Is going forward or not
-	 * @param power Power scale in [0, 1000]
+	 * @param power
+	 * @see SetMotorPower()
 	 */
-	void StartMotor(const bool is_forward, const uint16_t power)
+	void StartMotor(const int16_t power)
 	{
-		SetMotorDirection(is_forward);
 		SetMotorPower(power);
 	}
 
@@ -42,11 +41,12 @@ public:
 		SetMotorPower(0);
 	}
 
-	void SetMotorDirection(const bool is_forward);
-	void SetMotorPower(const uint16_t power)
-	{
-		m_motor.SetPower(power);
-	}
+	/**
+	 * Set the power of the motor, a negative power will drive the car backwards
+	 *
+	 * @param power Power scale in [-10000, 10000]
+	 */
+	void SetMotorPower(const int16_t power);
 
 	void AddMotorPower(const uint16_t factor)
 	{
@@ -115,10 +115,18 @@ public:
 
 	uint8_t GetRightPercentge() const;
 
+	bool IsLightSensorDetected(const uint8_t id)
+	{
+		return m_light_sensors[id].IsDetected();
+	}
+
 private:
+	void SetMotorDirection(const bool is_forward);
+
 	libsc::Bluetooth m_bt;
 	libsc::Encoder m_encoder;
 	libsc::Led m_leds[4];
+	libsc::LightSensor m_light_sensors[2];
 	libsc::LinearCcd m_ccd;
 	libsc::Motor m_motor;
 	libsc::TrsD05 m_servo;

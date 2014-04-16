@@ -6,17 +6,21 @@
  * Copyright (c) 2014 HKUST SmartCar Team
  */
 
+#include <mini_common.h>
 #include <hw_common.h>
 #include <syscall.h>
 
 #include <cstdint>
+#include <cstdlib>
+
+#include <MK60_gpio.h>
 
 #include <libsc/com/linear_ccd.h>
 #include <libutil/clock.h>
+#include <libutil/misc.h>
+#include <libutil/pid_controller.h>
+#include <libutil/pid_controller.tcc>
 #include <libutil/string.h>
-
-#include "libutil/pid_controller.h"
-#include "libutil/pid_controller.tcc"
 
 #include "linear_ccd/car.h"
 
@@ -26,25 +30,47 @@ using libutil::Clock;
 
 #define LED_FREQ 250
 #define SERVO_FREQ 9
-#define SPEED_CTRL_FREQ 100
+#define SPEED_CTRL_FREQ 20
 
-#define SPEED_SP 300
-#define SPEED_KP 2.666f
-#define SPEED_KI 0.0f
-#define SPEED_KD 8.0f
+#define K_ID 0
 
 namespace linear_ccd
 {
+
+namespace
+{
+
+struct SpeedConstant
+{
+	int encoder;
+	int pwm;
+	float kp;
+	float ki;
+	float kd;
+};
+
+constexpr SpeedConstant CONSTANTS[] =
+{
+		//{0, 0, 0.0f, 0.0f, 0.0f},
+		//{120, 1280, 52.0f, 0.0f, 5.2f},
+		{235, 1350, 55.0f, 0.0f, 5.5f},
+		{400, 1630, 65.0f, 0.0f, 6.5f},
+		{600, 2050, 95.0f, 0.0f, 9.5f}
+};
+
+}
 
 LinearCcdApp *LinearCcdApp::m_instance = nullptr;
 
 LinearCcdApp::SpeedState::SpeedState()
 		: prev_run(0),
-		  pid(SPEED_SP, SPEED_KP, SPEED_KI, SPEED_KD)
+		  pid(CONSTANTS[K_ID].encoder, CONSTANTS[K_ID].kp, CONSTANTS[K_ID].ki,
+				  CONSTANTS[K_ID].kd),
+		  prev_count(0)
 {}
 
 LinearCcdApp::LinearCcdApp()
-		: m_dir_control(&m_car)
+		: m_dir_control(&m_car), m_is_stop(false)
 {
 	m_instance = this;
 }
@@ -57,7 +83,9 @@ LinearCcdApp::~LinearCcdApp()
 void LinearCcdApp::Run()
 {
 	__g_fwrite_handler = FwriteHandler;
+	DELAY_MS(2000);
 	libutil::Clock::Init();
+	m_car.SetMotorPower(CONSTANTS[K_ID].pwm);
 
 	int servo = 0;
 	while (true)
@@ -71,7 +99,19 @@ void LinearCcdApp::Run()
 		DELAY_MS(25);
 		*/
 		ServoPass();
-		SpeedControlPass();
+		DetectStopLine();
+		if (!m_is_stop)
+		{
+			SpeedControlPass();
+		}
+		else
+		{
+			DELAY_MS(250);
+			m_car.SetMotorPower(-1800);
+			DELAY_MS(500);
+			m_car.StopMotor();
+			return;
+		}
 		LedPass();
 	}
 }
@@ -97,7 +137,6 @@ void LinearCcdApp::ServoPass()
 		const bool *ccd_data = m_car.SampleCcd();
 		m_dir_control.Control(ccd_data);
 
-
 #ifdef DEBUG
 		// Send CCD data through UART
 		char str[libsc::LinearCcd::SENSOR_W];
@@ -105,7 +144,7 @@ void LinearCcdApp::ServoPass()
 		{
 			str[i] = ccd_data[i] ? '#' : '.';
 		}
-		m_car.UartSendBuffer((uint8_t*)str, libsc::LinearCcd::SENSOR_W);
+		m_car.UartSendBuffer((uint8_t*)(str + 6), libsc::LinearCcd::SENSOR_W - 12);
 		m_car.UartSendStr("\n");
 #endif
 
@@ -118,10 +157,16 @@ void LinearCcdApp::SpeedControlPass()
 	const Clock::ClockInt time = Clock::Time();
 	if (Clock::TimeDiff(time, m_speed_state.prev_run) >= SPEED_CTRL_FREQ)
 	{
-		uint16_t power = m_speed_state.pid.Calc(time,
-				m_car.GetEncoderCount());
-		power = 1250;
-		m_car.SetMotorPower(power);
+		const uint32_t count = m_car.GetEncoderCount();
+		const Uint count_diff = libsc::Encoder::CountDiff(count,
+				m_speed_state.prev_count);
+		m_speed_state.prev_count = count;
+		//LOG_I("Encoder: %u", count_diff);
+		int power = m_speed_state.pid.Calc(time, count_diff)
+				+ CONSTANTS[K_ID].pwm;
+		//LOG_I("Power: %d", power);
+		//printf("%u\n", count_diff);
+		m_car.SetMotorPower(libutil::Clamp<int>(-10000, power, 10000));
 
 #ifdef DEBUG
 		// Send speed PID through UART
@@ -139,6 +184,14 @@ int LinearCcdApp::FwriteHandler(int, char *ptr, int len)
 		m_instance->m_car.UartSendBuffer((const uint8_t*)ptr, len);
 	}
 	return len;
+}
+
+void LinearCcdApp::DetectStopLine()
+{
+	if (!m_car.IsLightSensorDetected(0) && !m_car.IsLightSensorDetected(1))
+	{
+		m_is_stop = true;
+	}
 }
 
 }

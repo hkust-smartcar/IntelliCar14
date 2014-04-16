@@ -28,21 +28,27 @@ public:
 	 * @param is_forward Is going forward or not
 	 * @param power Power scale in [0, 1000]
 	 */
-	void StartMotor(const bool is_forward, const uint16_t power)
+	void StartMotor(const bool is_forward, const uint16_t powerl, const uint16_t powerr)
 	{
 		SetMotorDirection(is_forward);
-		SetMotorPower(power);
+		SetMotorPowerLeft(powerl);
+		SetMotorPowerRight(powerr);
 	}
 
 	void StopMotor()
 	{
-		SetMotorPower(0);
+		SetMotorPowerLeft(0);
+		SetMotorPowerRight(0);
 	}
 
 	void SetMotorDirection(const bool is_forward);
-	void SetMotorPower(const uint16_t power)
+	void SetMotorPowerLeft(const uint16_t power)
 	{
 		m_motor[0].SetPower(power);
+	}
+
+	void SetMotorPowerRight(const uint16_t power)
+	{
 		m_motor[1].SetPower(power);
 	}
 

@@ -29,19 +29,23 @@
 #include<stdlib.h>
 
 /*shit on 4/4/2014*/
-volatile int LEFT_SENSOR_VALUE,RIGHT_SENSOR_VALUE,DELTA_SENSOR_VALUE_ADJ,DELTA_SENSOR_VALUE_PREV = 0,DELTA_SENSOR_VALUE;
+volatile int LEFT_SENSOR_VALUE,RIGHT_SENSOR_VALUE,DELTA_SENSOR_VALUE_PREV;
+
+volatile int LEFT_SENSOR_VALUE_BACK,RIGHT_SENSOR_VALUE_BACK;
+
+int DELTA_SENSOR_VALUE,DELTA_SENSOR_VALUE_ADJ;
 
 volatile int  MID_SENSOR_VALUE;
 
 volatile int angle,err,err_prev,err_sum;
 
-volatile int spdr=3000,spdl=3000, temp;
+volatile int spdr=2200,spdl=2200, temp;
 
 volatile float testing_p = 0.9;
 
-uint16 LEFT_SENSOR_VALUE_PREV,RIGHT_SENSOR_VALUE_PREV;
+long int LEFT_SENSOR_VALUE_PREV,RIGHT_SENSOR_VALUE_PREV;
 
-float pos_kp=0.95, pos_kd=1;
+float pos_kp=1.1, pos_kd=1;
 
 int no1;
 
@@ -67,13 +71,13 @@ MagneticApp::~MagneticApp()
 void AdjustSpd()
 {
 if (DELTA_SENSOR_VALUE_ADJ < -90)
-	(spdr=spdr+20);
-	(spdl=spdl-30);
+	(spdr=spdr+200);
+	(spdl=spdl-100);
 if (DELTA_SENSOR_VALUE_ADJ > 90)
-(spdr=spdr-30);
-(spdl=spdl+20);
+(spdr=spdr-100);
+(spdl=spdl+200);
 if (DELTA_SENSOR_VALUE_ADJ > -89 && DELTA_SENSOR_VALUE_ADJ < 89 )
-(spdr=2700,spdl=2700);
+(spdr=2200,spdl=2200);
 
 }
 
@@ -82,38 +86,41 @@ void InitAllShit()
 	adc_init(ADC0_SE14);
 	adc_init(ADC0_SE15);
 	adc_init(ADC0_SE4b);
+	adc_init(ADC1_SE5b);
 }
 
 void CaluServoPercentage()
 {
-	if(DELTA_SENSOR_VALUE>-4500 && DELTA_SENSOR_VALUE < 4500)
+	/*if(DELTA_SENSOR_VALUE>-4500 && DELTA_SENSOR_VALUE < 4500)
 		DELTA_SENSOR_VALUE_ADJ =0;
 		else
-	DELTA_SENSOR_VALUE_ADJ =pos_kp*( DELTA_SENSOR_VALUE)/72;// + pos_kd * err/400
+		*/
+	DELTA_SENSOR_VALUE_ADJ =pos_kp*(DELTA_SENSOR_VALUE)/72;// + pos_kd * err/400
 
-	if (DELTA_SENSOR_VALUE_ADJ>137)
+	if(DELTA_SENSOR_VALUE_ADJ>-15||DELTA_SENSOR_VALUE_ADJ<15)
+		(DELTA_SENSOR_VALUE=0);
+	if (DELTA_SENSOR_VALUE_ADJ>107)
 		(DELTA_SENSOR_VALUE_ADJ =137);
-	if (DELTA_SENSOR_VALUE_ADJ <-137)
+	if (DELTA_SENSOR_VALUE_ADJ <-107)
 		(DELTA_SENSOR_VALUE_ADJ =-137);
+	//LOG_W("%d",DELTA_SENSOR_VALUE_ADJ);
 }
 void GetSensorValue()
 {
-	uint16 LEFT_SENSOR_VALUE, RIGHT_SENSOR_VALUE;//, MID_SENSOR_VALUE;
 	//float theta;
 	LEFT_SENSOR_VALUE = adc_once(ADC0_SE14,ADC_16bit);
 	RIGHT_SENSOR_VALUE = adc_once(ADC0_SE15,ADC_16bit);
-	MID_SENSOR_VALUE = adc_once(ADC0_SE4b,ADC_16bit);
 
-	LEFT_SENSOR_VALUE= (round((LEFT_SENSOR_VALUE+2120)/250))*250;
-	RIGHT_SENSOR_VALUE= (round(RIGHT_SENSOR_VALUE/250))*250;
-	if (LEFT_SENSOR_VALUE > 65000)
-	(LEFT_SENSOR_VALUE = 0);
+	LEFT_SENSOR_VALUE= (round((LEFT_SENSOR_VALUE)/250))*(28/25)*250;
+	RIGHT_SENSOR_VALUE= (round(RIGHT_SENSOR_VALUE/150))*150;
+	//RIGHT_SENSOR_VALUE_BACK=(round((RIGHT_SENSOR_VALUE_BACK)/250))*250;
 	//theta= atan(MID_SENSOR_VALUE/(LEFT_SENSOR_VALUE-2120));
 	//LEFT_SENSOR_VALUE=(LEFT_SENSOR_VALUE+2120)*cos(atan(MID_SENSOR_VALUE/(LEFT_SENSOR_VALUE+2120)));
 	//RIGHT_SENSOR_VALUE=RIGHT_SENSOR_VALUE*cos(atan((RIGHT_SENSOR_VALUE)/MID_SENSOR_VALUE));
 	DELTA_SENSOR_VALUE = (LEFT_SENSOR_VALUE - RIGHT_SENSOR_VALUE);
-	LOG_W("%d",DELTA_SENSOR_VALUE);
-	//no1=DELTA_SENSOR_VALUE_PREV-DELTA_SENSOR_VALUE;
+	no1=DELTA_SENSOR_VALUE_PREV-DELTA_SENSOR_VALUE;
+	//if (no1<-300&&(DELTA_SENSOR_VALUE>-5000||DELTA_SENSOR_VALUE<5000))
+		//(DELTA_SENSOR_VALUE=DELTA_SENSOR_VALUE_PREV);
 }
 
 void MagneticApp::Run()
@@ -125,19 +132,15 @@ void MagneticApp::Run()
 	while (true)
 	{
 		GetSensorValue();
-		m_car.SetTurning(0);
 		CaluServoPercentage();
 		m_car.SetTurning(DELTA_SENSOR_VALUE_ADJ);
 		m_car.SetMotorDirection(0);
-		AdjustSpd();
+		//AdjustSpd();
 		m_car.SetMotorPowerLeft(spdl);
 		m_car.SetMotorPowerRight(spdr);
-		err_sum=err+err_prev;
 		//err= abs(DELTA_SENSOR_VALUE)/9648;
-		GetSensorValue();
-		DELTA_SENSOR_VALUE_PREV=DELTA_SENSOR_VALUE;
 		err = err_prev;
-
+		LOG_W("%d,%d",DELTA_SENSOR_VALUE_ADJ,DELTA_SENSOR_VALUE);
 	}
 
 }

@@ -25,6 +25,11 @@ public:
 	static int FwriteHandler(int, char *ptr, int len);
 
 private:
+	__ISR static void Pit0Handler();
+	__ISR static void Pit1Handler();
+	__ISR static void Pit2Handler();
+	__ISR static void Pit3Handler();
+
 	Car m_car;
 
 	static MagneticApp *m_instance;

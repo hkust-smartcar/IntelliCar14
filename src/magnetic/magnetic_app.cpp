@@ -8,6 +8,8 @@
 
 #include <syscall.h>
 
+#include <cstdio>
+
 #include <math.h>
 
 #include "magnetic/car.h"
@@ -24,9 +26,17 @@
 
 #include"MK60_FTM.h"
 
+#include <libutil/string.h>
+
 #include <log.h>
 #include <libutil/clock.h>
-#include<stdlib.h>
+#include <stdlib.h>
+#include <mini_common.h>
+#include <hw_common.h>
+#include <MK60_pit.h>
+#include <vectors.h>
+
+using namespace std;
 
 /*shit on 4/4/2014*/
 volatile int LEFT_SENSOR_VALUE,RIGHT_SENSOR_VALUE,DELTA_SENSOR_VALUE_ADJ,DELTA_SENSOR_VALUE_PREV = 0,DELTA_SENSOR_VALUE;
@@ -35,9 +45,20 @@ volatile int  MID_SENSOR_VALUE;
 
 volatile int angle,err,err_prev,err_sum;
 
-volatile int spdr=3000,spdl=3000, temp;
+volatile int spd=1800;
+
+volatile int pidspd=0,spdr=0,spdl=0, temp;
+
+volatile int differential = 70;
 
 volatile float testing_p = 0.9;
+
+volatile float encoder=0;
+
+volatile int encodercountl=0,encodercountr=0;
+
+volatile int p=350; //speed control pid
+
 
 uint16 LEFT_SENSOR_VALUE_PREV,RIGHT_SENSOR_VALUE_PREV;
 
@@ -64,18 +85,23 @@ MagneticApp::~MagneticApp()
 	m_instance = nullptr;
 }
 
-void AdjustSpd()
+/*void AdjustSpd()
 {
+spdr=spdr*dp;
 if (DELTA_SENSOR_VALUE_ADJ < -90)
-	(spdr=spdr+20);
-	(spdl=spdl-30);
+	(spdr=spd/(differential/100.0));
+	(spdl=spd*(differential/100.0));
 if (DELTA_SENSOR_VALUE_ADJ > 90)
-(spdr=spdr-30);
-(spdl=spdl+20);
+(spdr=spd*(differential/100.0));
+(spdl=spd/(differential/100.0));
 if (DELTA_SENSOR_VALUE_ADJ > -89 && DELTA_SENSOR_VALUE_ADJ < 89 )
-(spdr=2700,spdl=2700);
+(spdr=spd,spdl=spd);
 
-}
+if (spdl>8000)  //motor protection speed <8000
+	(spdl=8000);
+if (spdr>8000)
+	(spdl=8000);
+}*/
 
 void InitAllShit()
 {
@@ -116,12 +142,59 @@ void GetSensorValue()
 	//no1=DELTA_SENSOR_VALUE_PREV-DELTA_SENSOR_VALUE;
 }
 
+
+__ISR void MagneticApp::Pit3Handler() //encoder + speed control pid
+{
+	m_instance->m_car.UpdateEncoder(0);
+	m_instance->m_car.UpdateEncoder(1);
+	encodercountl = m_instance->m_car.GetEncoderCount(0);
+	encodercountr = m_instance->m_car.GetEncoderCount(1);
+
+
+    spdl=(spd*(1+p*(encoder-encodercountl)/encoder/100));
+    spdr=(spd*(1+p*(encoder-encodercountr)/encoder/100));
+
+	m_instance->m_car.UartSendStr(libutil::String::Format("encoderl: %d, encoderr: %d", encodercountl, encodercountr).c_str());
+	m_instance->m_car.UartSendStr(libutil::String::Format("spdl: %d, spdr: %d\n", spdl, spdr).c_str());
+
+	if (DELTA_SENSOR_VALUE_ADJ > -89 && DELTA_SENSOR_VALUE_ADJ < 89 )
+		(spdr=spdr,spdl=spdl);
+	else if (DELTA_SENSOR_VALUE_ADJ < -90)
+		{spdr=spdr/(differential/100.0);
+		spdl=spdl*(differential/100.0);}
+	else
+		{spdr=spdr*(differential/100.0);
+		spdl=spdl/(differential/100.0);}
+
+
+	if (spdl<0)
+		(spdl=0);
+	if (spdr<0)
+		(spdr=0);
+	if (spdl>8000)  //motor protection speed <8000
+		(spdl=8000);
+	if (spdr>8000)
+		(spdl=8000);
+
+	m_instance->m_car.SetMotorPowerLeft(spdl);
+	m_instance->m_car.SetMotorPowerRight(spdr);
+
+	PIT_Flag_Clear(PIT3);
+}
+
+
 void MagneticApp::Run()
 {
 	__g_fwrite_handler = FwriteHandler;
 	libutil::Clock::Init();
 	
 	InitAllShit();
+
+
+	encoder=0.046*spd-45;
+    SetIsr(PIT3_VECTORn, Pit3Handler);
+    pit_init_ms(PIT3, 20);
+    EnableIsr(PIT3_VECTORn);
 	while (true)
 	{
 		GetSensorValue();
@@ -129,9 +202,9 @@ void MagneticApp::Run()
 		CaluServoPercentage();
 		m_car.SetTurning(DELTA_SENSOR_VALUE_ADJ);
 		m_car.SetMotorDirection(0);
-		AdjustSpd();
-		m_car.SetMotorPowerLeft(spdl);
-		m_car.SetMotorPowerRight(spdr);
+		//AdjustSpd();
+		//m_car.SetMotorPowerLeft(spdl);
+		//m_car.SetMotorPowerRight(spdr);
 		err_sum=err+err_prev;
 		//err= abs(DELTA_SENSOR_VALUE)/9648;
 		GetSensorValue();
@@ -146,7 +219,7 @@ int MagneticApp::FwriteHandler(int, char *ptr, int len)
 {
 	if (m_instance)
 	{
-		m_instance->m_car.UartSendBuffer((const uint8_t*)ptr, len);
+		//m_instance->m_car.UartSendBuffer((const uint8_t*)ptr, len);
 	}
 	return len;
 

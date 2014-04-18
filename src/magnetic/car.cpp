@@ -11,6 +11,7 @@
 #include <libsc/com/led.h>
 #include <libsc/com/uart_device.h>
 #include <libutil/misc.h>
+#include <libsc/com/encoder.h>
 
 #include "magnetic/car.h"
 
@@ -25,7 +26,8 @@ namespace magnetic
 {
 
 Car::Car()
-		: m_servo(0), m_leds{Led(0), Led(1), Led(2), Led(3)},
+		: m_encoder{Encoder(0), Encoder(1)},
+		  m_servo(0), m_leds{Led(0), Led(1), Led(2), Led(3)},
 		  m_motor{Motor(0), Motor(1)}, m_uart(3, 115200)
 {
 			  SetMotorPowerLeft(0);

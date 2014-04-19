@@ -9,14 +9,13 @@
 #ifndef LINEAR_CCD_APP_H_
 #define LINEAR_CCD_APP_H_
 
+#include <libutil/clock.h>
+#include <libutil/pid_controller.h>
+
 #include "linear_ccd/car.h"
 #include "linear_ccd/dir_control_algorithm.h"
-#include "linear_ccd/kalman.h"
 #include "linear_ccd/speed_control_strategy.h"
 #include "linear_ccd/speed_control_1.h"
-
-#include "libutil/clock.h"
-#include "libutil/pid_controller.h"
 
 namespace linear_ccd
 {
@@ -79,7 +78,6 @@ private:
 	SpeedState m_speed_state;
 
 	DirControlAlgorithm m_dir_control;
-	kalman_filter m_gyro_filter;
 	SpeedControl1 m_speed_control;
 	bool m_is_stop;
 

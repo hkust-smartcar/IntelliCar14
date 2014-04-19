@@ -11,9 +11,8 @@
 
 #include <cstdint>
 
+#include <libutil/kalman_filter.h>
 #include <libutil/pid_controller.h>
-
-#include "linear_ccd/kalman.h"
 
 namespace linear_ccd
 {
@@ -47,7 +46,7 @@ private:
 	int last_sample_error_pos;
 
 	libutil::PidController<int32_t, int32_t> m_servo_pid;
-	kalman_filter m_gyro_filter;
+	libutil::KalmanFilter m_gyro_filter;
 
 	uint8_t m_mode;
 };

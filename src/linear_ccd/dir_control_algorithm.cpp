@@ -13,13 +13,13 @@
 
 #include "linear_ccd/debug.h"
 
+#include <libutil/kalman_filter.h>
 #include <libutil/pid_controller.h>
 #include <libutil/pid_controller.tcc>
 #include <libutil/misc.h>
 
 #include "linear_ccd/car.h"
 #include "linear_ccd/dir_control_algorithm.h"
-#include "linear_ccd/kalman.h"
 
 using namespace std;
 
@@ -52,6 +52,7 @@ constexpr ServoConstant CONSTANTS[] =
 		//{1.57f, 0.0f, 0.0f, 62, 62},
 		//{1.62f, 0.0f, 0.0f, 62, 62},
 		//{1.67f, 0.0f, 0.0f, 62, 62},
+
 		{1.57f, 0.0f, 0.82f, 62, 62},
 		{1.57f, 0.0f, 0.92f, 62, 62},
 		{1.57f, 0.0f, 1.02f, 62, 62},
@@ -106,13 +107,15 @@ DirControlAlgorithm::DirControlAlgorithm(Car *car)
 
 		  m_servo_pid(CCD_MID_POS, CONSTANTS[0].kp, CONSTANTS[0].ki,
 				  CONSTANTS[0].kd),
+		  m_gyro_filter(0, 0, 0, 0), // will be init later
 
 		  m_mode(0)
 {}
 
 void DirControlAlgorithm::OnFinishWarmUp(Car *car)
 {
-	kalman_filter_init(&m_gyro_filter, 0.005f, 0.05f, car->GetGyroAngle(), 1.0f);
+	m_gyro_filter = libutil::KalmanFilter(0.005f, 0.05f, car->GetGyroAngle(),
+			1.0f);
 	m_flat_gyro_angle = static_cast<int16_t>(car->GetGyroAngle());
 	m_servo_pid.Restart();
 }
@@ -275,8 +278,7 @@ void DirControlAlgorithm::Control(const bool *ccd_data)
 bool DirControlAlgorithm::DetectSlope()
 {
 	m_car->UpdateGyro();
-	float filter = m_car->GetGyroAngle();
-	kalman_filtering(&m_gyro_filter, &filter, 1);
+	const float filter = m_gyro_filter.Filter(m_car->GetGyroAngle());
 #ifdef DEBUG_PRINT_GYRO
 	printf("%f\n", filter);
 #endif

@@ -17,7 +17,6 @@
 #include <MK60_gpio.h>
 
 #include "linear_ccd/debug.h"
-#include "linear_ccd/kalman.h"
 
 #include <libsc/com/linear_ccd.h>
 #include <libutil/clock.h>

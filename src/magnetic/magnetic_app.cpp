@@ -27,6 +27,7 @@
 #include"MK60_FTM.h"
 
 #include <libutil/string.h>
+#include <libutil/kalman_filter.h>
 
 #include <log.h>
 #include <libutil/clock.h>
@@ -45,7 +46,7 @@ volatile int  MID_SENSOR_VALUE;
 
 volatile int angle,err,err_prev,err_sum;
 
-volatile int spd=1800;
+volatile int spd=0;     //speed
 
 volatile int pidspd=0,spdr=0,spdl=0, temp;
 
@@ -53,7 +54,7 @@ volatile int differential = 70;
 
 volatile float testing_p = 0.9;
 
-volatile float encoder=0;
+volatile float encoder=0,encoderl=0,encoderr=0;
 
 volatile int encodercountl=0,encodercountr=0;
 
@@ -122,13 +123,20 @@ void CaluServoPercentage()
 	if (DELTA_SENSOR_VALUE_ADJ <-137)
 		(DELTA_SENSOR_VALUE_ADJ =-137);
 }
-void GetSensorValue()
+void MagneticApp::GetSensorValue()
 {
 	uint16 LEFT_SENSOR_VALUE, RIGHT_SENSOR_VALUE;//, MID_SENSOR_VALUE;
 	//float theta;
 	LEFT_SENSOR_VALUE = adc_once(ADC0_SE14,ADC_16bit);
 	RIGHT_SENSOR_VALUE = adc_once(ADC0_SE15,ADC_16bit);
 	MID_SENSOR_VALUE = adc_once(ADC0_SE4b,ADC_16bit);
+
+	m_instance->m_car.UartSendStr(libutil::String::Format("%d, %d", LEFT_SENSOR_VALUE, RIGHT_SENSOR_VALUE).c_str());
+
+	//libutil::KalmanFilter::KalmanFilter(1, 2, 1,0);
+	//RIGHT_SENSOR_VALUE=m_magneticfilter.Filter(RIGHT_SENSOR_VALUE);
+
+	m_instance->m_car.UartSendStr(libutil::String::Format("%d, %d\n", LEFT_SENSOR_VALUE, RIGHT_SENSOR_VALUE).c_str());
 
 	LEFT_SENSOR_VALUE= (round((LEFT_SENSOR_VALUE+2120)/250))*250;
 	RIGHT_SENSOR_VALUE= (round(RIGHT_SENSOR_VALUE/250))*250;
@@ -140,6 +148,8 @@ void GetSensorValue()
 	DELTA_SENSOR_VALUE = (LEFT_SENSOR_VALUE - RIGHT_SENSOR_VALUE);
 	LOG_W("%d",DELTA_SENSOR_VALUE);
 	//no1=DELTA_SENSOR_VALUE_PREV-DELTA_SENSOR_VALUE;
+
+	DELAY_MS(10);
 }
 
 
@@ -151,26 +161,27 @@ __ISR void MagneticApp::Pit3Handler() //encoder + speed control pid
 	encodercountr = m_instance->m_car.GetEncoderCount(1);
 
 
+	if (DELTA_SENSOR_VALUE_ADJ > -89 && DELTA_SENSOR_VALUE_ADJ < 89 )
+		(encoder=encoderr,encoder=encoderl);
+	else if (DELTA_SENSOR_VALUE_ADJ < -90)
+		{encoderr=encoder/(differential/100.0);
+		encoderl=encoder*(differential/100.0);}
+	else
+		{encoderr=encoder*(differential/100.0);
+		encoderl=encoder/(differential/100.0);}
+
+
     spdl=(spd*(1+p*(encoder-encodercountl)/encoder/100));
     spdr=(spd*(1+p*(encoder-encodercountr)/encoder/100));
 
-	m_instance->m_car.UartSendStr(libutil::String::Format("encoderl: %d, encoderr: %d", encodercountl, encodercountr).c_str());
-	m_instance->m_car.UartSendStr(libutil::String::Format("spdl: %d, spdr: %d\n", spdl, spdr).c_str());
+	//m_instance->m_car.UartSendStr(libutil::String::Format("encoderl: %d, encoderr: %d\n", encodercountl, encodercountr).c_str());
+	//m_instance->m_car.UartSendStr(libutil::String::Format("spdl: %d, spdr: %d\n", spdl, spdr).c_str());
 
-	if (DELTA_SENSOR_VALUE_ADJ > -89 && DELTA_SENSOR_VALUE_ADJ < 89 )
-		(spdr=spdr,spdl=spdl);
-	else if (DELTA_SENSOR_VALUE_ADJ < -90)
-		{spdr=spdr/(differential/100.0);
-		spdl=spdl*(differential/100.0);}
-	else
-		{spdr=spdr*(differential/100.0);
-		spdl=spdl/(differential/100.0);}
+	//if (spdl<0)
+	//	(spdl=0);
+	//if (spdr<0)
+	//	(spdr=0);
 
-
-	if (spdl<0)
-		(spdl=0);
-	if (spdr<0)
-		(spdr=0);
 	if (spdl>8000)  //motor protection speed <8000
 		(spdl=8000);
 	if (spdr>8000)
@@ -189,6 +200,7 @@ void MagneticApp::Run()
 	libutil::Clock::Init();
 	
 	InitAllShit();
+
 
 
 	encoder=0.046*spd-45;

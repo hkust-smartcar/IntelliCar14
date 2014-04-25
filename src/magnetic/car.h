@@ -127,6 +127,7 @@ private:
 	libsc::Led m_leds[4];
 	libsc::Motor m_motor[2];
 	libsc::UartDevice m_uart;
+
 };
 
 }

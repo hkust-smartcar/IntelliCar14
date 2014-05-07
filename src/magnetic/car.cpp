@@ -26,9 +26,10 @@ namespace magnetic
 {
 
 Car::Car()
-		: m_encoder{Encoder(0), Encoder(1)},
-		  m_servo(0), m_leds{Led(0), Led(1), Led(2), Led(3)},
-		  m_motor{Motor(0), Motor(1)}, m_uart(3, 115200)
+		:m_encoder{Encoder(0), Encoder(1)},
+		 m_servo(0), m_leds{Led(0), Led(1), Led(2), Led(3)},
+		 m_motor{Motor(0), Motor(1)}, m_uart(3, 115200)
+
 {
 			  SetMotorPowerLeft(0);
 			  SetMotorPowerRight(0);
@@ -39,7 +40,7 @@ Car::Car()
 
 void Car::SetMotorDirection(const bool is_forward)
 {
-	m_motor[0].SetClockwise(!is_forward);
+	m_motor[0].SetClockwise(is_forward);
 	m_motor[1].SetClockwise(!is_forward);
 }
 

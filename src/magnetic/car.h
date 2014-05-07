@@ -53,6 +53,12 @@ public:
 		m_motor[1].SetPower(power);
 	}
 
+	void UpdateEncoder(const uint8_t id)
+	{
+		m_encoder[id].Update();
+	}
+
+
 	void AddMotorPower(const uint16_t factor)
 	{
 		m_motor[0].AddPower(factor);
@@ -120,6 +126,7 @@ public:
 	{
 		return m_encoder[id].GetCount();
 	}
+
 
 private:
 	libsc::Encoder m_encoder[2];

@@ -24,32 +24,58 @@
 
 #include"MK60_FTM.h"
 
-#include <log.h>
-#include <libutil/clock.h>
-#include<stdlib.h>
+#include<libutil/kalman_filter.h>
+
+#include<libutil/clock.h>
+
+using libutil::Clock;
+
+using namespace std;
 
 /*shit on 4/4/2014*/
-volatile int LEFT_SENSOR_VALUE,RIGHT_SENSOR_VALUE,DELTA_SENSOR_VALUE_PREV;
+volatile int RIGHT_SENSOR_VALUE_Y,LEFT_SENSOR_VALUE_X,RIGHT_SENSOR_VALUE_X;
+
+volatile int LEFT_SENSOR_VALUE_Y_prev,LEFT_SENSOR_VALUE_X_prev,RIGHT_SENSOR_VALUE_X_prev;
 
 volatile int LEFT_SENSOR_VALUE_BACK,RIGHT_SENSOR_VALUE_BACK;
 
-int DELTA_SENSOR_VALUE,DELTA_SENSOR_VALUE_ADJ;
+int LEFT_SENSOR_VALUE_Y_filtered,LEFT_SENSOR_VALUE_Y;
+
+int DELTA_SENSOR_VALUE,DELTA_SENSOR_VALUE_ADJ,DELTA_SENSOR_VALUE_ADJ_prev;
 
 volatile int  MID_SENSOR_VALUE;
+
+volatile float encoder,encoderl,encoderr;
 
 volatile int angle,err,err_prev,err_sum;
 
 volatile int spdr=2200,spdl=2200, temp;
 
-volatile float testing_p = 0.9;
+int spd=2700;
+
+#define differential 70
 
 long int LEFT_SENSOR_VALUE_PREV,RIGHT_SENSOR_VALUE_PREV;
 
-float pos_kp=1.1, pos_kd=1;
+float pos_kp=1.4, pos_kd=1;
 
 int no1;
 
 float angle_adj;
+
+//volatile int spd=2500;     //speed
+
+//volatile int pidspd=0,spdr=spdl=2500, temp;
+
+
+volatile float testing_p = 0.9;
+
+
+volatile int encodercountl=0,encodercountr=0;
+
+volatile int p=350; //speed control pid
+
+#define K_ID 0
 
 /*shit on 4/4/2014 ends here*/
 
@@ -68,28 +94,16 @@ MagneticApp::~MagneticApp()
 	m_instance = nullptr;
 }
 
-void AdjustSpd()
-{
-if (DELTA_SENSOR_VALUE_ADJ < -90)
-	(spdr=spdr+200);
-	(spdl=spdl-100);
-if (DELTA_SENSOR_VALUE_ADJ > 90)
-(spdr=spdr-100);
-(spdl=spdl+200);
-if (DELTA_SENSOR_VALUE_ADJ > -89 && DELTA_SENSOR_VALUE_ADJ < 89 )
-(spdr=2200,spdl=2200);
 
-}
-
-void InitAllShit()
+void MagneticApp::InitAll()
 {
 	adc_init(ADC0_SE14);
 	adc_init(ADC0_SE15);
 	adc_init(ADC0_SE4b);
-	adc_init(ADC1_SE5b);
+	//adc_init(ADC1_SE5b);
 }
 
-void CaluServoPercentage()
+void MagneticApp::CaluServoPercentage()
 {
 	/*if(DELTA_SENSOR_VALUE>-4500 && DELTA_SENSOR_VALUE < 4500)
 		DELTA_SENSOR_VALUE_ADJ =0;
@@ -97,50 +111,167 @@ void CaluServoPercentage()
 		*/
 	DELTA_SENSOR_VALUE_ADJ =pos_kp*(DELTA_SENSOR_VALUE)/72;// + pos_kd * err/400
 
-	if(DELTA_SENSOR_VALUE_ADJ>-15||DELTA_SENSOR_VALUE_ADJ<15)
+	if(DELTA_SENSOR_VALUE_ADJ>-25&&DELTA_SENSOR_VALUE_ADJ<25)
 		(DELTA_SENSOR_VALUE=0);
 	if (DELTA_SENSOR_VALUE_ADJ>107)
 		(DELTA_SENSOR_VALUE_ADJ =137);
 	if (DELTA_SENSOR_VALUE_ADJ <-107)
 		(DELTA_SENSOR_VALUE_ADJ =-137);
+	int difference3 = DELTA_SENSOR_VALUE_ADJ_prev-DELTA_SENSOR_VALUE_ADJ;
+	if(difference3>-25&&difference3<25)
+		(DELTA_SENSOR_VALUE_ADJ=0);
+	if (LEFT_SENSOR_VALUE_Y>1000)
+	DELTA_SENSOR_VALUE_ADJ=DELTA_SENSOR_VALUE_ADJ*3;
+	if(LEFT_SENSOR_VALUE_Y>1000&&DELTA_SENSOR_VALUE<1500&&DELTA_SENSOR_VALUE>-1500)
+		DELTA_SENSOR_VALUE_ADJ=DELTA_SENSOR_VALUE_ADJ_prev;
 	//LOG_W("%d",DELTA_SENSOR_VALUE_ADJ);
-}
-void GetSensorValue()
-{
-	//float theta;
-	LEFT_SENSOR_VALUE = adc_once(ADC0_SE14,ADC_16bit);
-	RIGHT_SENSOR_VALUE = adc_once(ADC0_SE15,ADC_16bit);
 
-	LEFT_SENSOR_VALUE= (round((LEFT_SENSOR_VALUE)/250))*(28/25)*250;
-	RIGHT_SENSOR_VALUE= (round(RIGHT_SENSOR_VALUE/150))*150;
+}
+
+__ISR void MagneticApp::Pit1Handler()
+{
+
+
+	PIT_Flag_Clear(PIT1);
+
+}
+__ISR void MagneticApp::Pit3Handler() //encoder + speed control pid
+{
+
+	m_instance->m_car.UpdateEncoder(0);
+	m_instance->m_car.UpdateEncoder(1);
+	encodercountl = m_instance->m_car.GetEncoderCount(0);
+	encodercountr = m_instance->m_car.GetEncoderCount(1);
+
+
+	/*if (DELTA_SENSOR_VALUE_ADJ > -89 && DELTA_SENSOR_VALUE_ADJ < 89 )
+		(encoder=encoderr,encoder=encoderl);
+	else if (DELTA_SENSOR_VALUE_ADJ < -90)
+		{encoderr=encoder/(differential/100.0);
+		encoder=encoder*(differential/100.0);}
+	else
+		{encoderr=encoder*(differential/100.0);
+		encoderl=encoder/(differential/100.0);}
+		*/
+	if(DELTA_SENSOR_VALUE_ADJ>60||DELTA_SENSOR_VALUE_ADJ<-60)
+			spd= 2000;
+
+    spdl=(spd*(1+p*(encoder-encodercountl)/encoder/100));
+    spdr=(spd*(1+p*(encoder-encodercountr)/encoder/100));
+    //LOG_W("%d,%d",spdl,spdr);
+	//m_instance->m_car.UartSendStr(libutil::String::Format("encoderl: %d, encoderr: %d\n", encodercountl, encodercountr).c_str());
+	//m_instance->m_car.UartSendStr(libutil::String::Format("spdl: %d, spdr: %d\n", spdl, spdr).c_str());
+
+	if (spdl<0)
+		(spdl=0);
+	if (spdr<0)
+		(spdr=0);
+
+	if (spdl>8000)  //motor protection speed <8000
+		(spdl=8000);
+	if (spdr>8000)
+		(spdl=8000);
+	if (spdl>0 && encodercountl==0)
+		(m_instance->m_car.SetMotorPowerLeft(0),m_instance->m_car.SetMotorPowerRight(0));
+
+	else
+	m_instance->m_car.SetMotorPowerLeft(spdl),m_instance->m_car.SetMotorPowerRight(spdr);
+
+	PIT_Flag_Clear(PIT3);
+}
+
+void MagneticApp::GetSensorValue()
+
+{
+	int i,j,k,x,y,z;
+	//float theta;
+	x = adc_once(ADC0_SE14,ADC_16bit)* 1.64416483;
+	y = adc_once(ADC0_SE14,ADC_16bit)* 1.64416483;
+	z = adc_once(ADC0_SE14,ADC_16bit)* 1.64416483;
+	LEFT_SENSOR_VALUE_X=(x+y+z)/3;
+	i = adc_once(ADC0_SE15,ADC_16bit);
+	j = adc_once(ADC0_SE15,ADC_16bit);
+	k = adc_once(ADC0_SE15,ADC_16bit);
+	RIGHT_SENSOR_VALUE_X=(i+j+k)/3;
+	LEFT_SENSOR_VALUE_Y=16369.0f - adc_once(ADC0_SE4b,ADC_16bit);
+	//RIGHT_SENSOR_VALUE_Y = adc_once(ADC1_SE5b,ADC_16bit);
+	LEFT_SENSOR_VALUE_X= (round((LEFT_SENSOR_VALUE_X)/150))*150;
+	RIGHT_SENSOR_VALUE_X= (round(RIGHT_SENSOR_VALUE_X/150))*150;
 	//RIGHT_SENSOR_VALUE_BACK=(round((RIGHT_SENSOR_VALUE_BACK)/250))*250;
 	//theta= atan(MID_SENSOR_VALUE/(LEFT_SENSOR_VALUE-2120));
 	//LEFT_SENSOR_VALUE=(LEFT_SENSOR_VALUE+2120)*cos(atan(MID_SENSOR_VALUE/(LEFT_SENSOR_VALUE+2120)));
 	//RIGHT_SENSOR_VALUE=RIGHT_SENSOR_VALUE*cos(atan((RIGHT_SENSOR_VALUE)/MID_SENSOR_VALUE));
-	DELTA_SENSOR_VALUE = (LEFT_SENSOR_VALUE - RIGHT_SENSOR_VALUE);
-	no1=DELTA_SENSOR_VALUE_PREV-DELTA_SENSOR_VALUE;
+	DELTA_SENSOR_VALUE = (LEFT_SENSOR_VALUE_X - RIGHT_SENSOR_VALUE_X);
+	//no1=DELTA_SENSOR_VALUE_PREV-DELTA_SENSOR_VALUE;
 	//if (no1<-300&&(DELTA_SENSOR_VALUE>-5000||DELTA_SENSOR_VALUE<5000))
 		//(DELTA_SENSOR_VALUE=DELTA_SENSOR_VALUE_PREV);
+}
+
+void NoiseFiltering()
+{
+	int difference1 = LEFT_SENSOR_VALUE_Y- LEFT_SENSOR_VALUE_Y_prev;
+	if (difference1 >20)
+	LEFT_SENSOR_VALUE_Y= LEFT_SENSOR_VALUE_Y_prev +5;
+	if (difference1 <-20 && difference1<0)
+	LEFT_SENSOR_VALUE_Y= LEFT_SENSOR_VALUE_Y_prev -5;
+	//m_abc=libutil::KalmanFilter(0.005f, 0.05f,adc_once(ADC0_SE4b,ADC_16bit),1.0f);
+	//int difference2 = RIGHT_SENSOR_VALUE_X- RIGHT_SENSOR_VALUE_X_prev;
+		//if (difference2 >20)
+			//RIGHT_SENSOR_VALUE_X= RIGHT_SENSOR_VALUE_X_prev +5;
+		//if (difference2 <-20)
+			//RIGHT_SENSOR_VALUE_X= RIGHT_SENSOR_VALUE_X_prev -5;
+
+		//int difference4 = LEFT_SENSOR_VALUE_X- LEFT_SENSOR_VALUE_X_prev;
+				//if (difference4 >20)
+					//LEFT_SENSOR_VALUE_X= LEFT_SENSOR_VALUE_X_prev +5;
+				//if (difference4 <-20)
+					//LEFT_SENSOR_VALUE_X= LEFT_SENSOR_VALUE_X_prev -5;
+		//LOG_W("%d,%d",LEFT_SENSOR_VALUE_Y,LEFT_SENSOR_VALUE_Y_prev);
+}
+
+void AdjustSpd()
+{
+	if(DELTA_SENSOR_VALUE_ADJ>60)
+		spdl=3200,spdr=1500;
+	else if((DELTA_SENSOR_VALUE_ADJ<-60))
+		spdl=1500,spdr=3200;
+	else spdl=2500, spdr=2500;
+
 }
 
 void MagneticApp::Run()
 {
 	__g_fwrite_handler = FwriteHandler;
 	libutil::Clock::Init();
-	
-	InitAllShit();
-	while (true)
+	encoder=0.046*spd-45;
+	SetIsr(PIT3_VECTORn, Pit3Handler);
+	pit_init_ms(PIT3, 30);
+	EnableIsr(PIT3_VECTORn);
+
+/*
+	SetIsr(PIT1_VECTORn, Pit1Handler);
+	pit_init_ms(PIT1, 30);
+	EnableIsr(PIT1_VECTORn);
+*/
+		while (true)
 	{
+		InitAll();
 		GetSensorValue();
+		NoiseFiltering();
+		//iprintf("%f\n",filter);
 		CaluServoPercentage();
 		m_car.SetTurning(DELTA_SENSOR_VALUE_ADJ);
 		m_car.SetMotorDirection(0);
 		//AdjustSpd();
-		m_car.SetMotorPowerLeft(spdl);
-		m_car.SetMotorPowerRight(spdr);
 		//err= abs(DELTA_SENSOR_VALUE)/9648;
 		err = err_prev;
-		LOG_W("%d,%d",DELTA_SENSOR_VALUE_ADJ,DELTA_SENSOR_VALUE);
+		//LOG_W("%d,%d,%d,%d",DELTA_SENSOR_VALUE_ADJ,LEFT_SENSOR_VALUE_Y,LEFT_SENSOR_VALUE_X,RIGHT_SENSOR_VALUE_X);//,LEFT_SENSOR_VALUE_Y);
+		LOG_W("%d,%d",LEFT_SENSOR_VALUE_X,RIGHT_SENSOR_VALUE_X);
+		//LOG_W("OK\n");
+		DELAY_MS(10);
+		LEFT_SENSOR_VALUE_Y_prev=LEFT_SENSOR_VALUE_Y;
+		RIGHT_SENSOR_VALUE_X_prev=RIGHT_SENSOR_VALUE_X;
+		DELTA_SENSOR_VALUE_ADJ=DELTA_SENSOR_VALUE_ADJ_prev;
 	}
 
 }

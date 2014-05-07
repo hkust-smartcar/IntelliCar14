@@ -13,6 +13,7 @@
 #include <libsc/com/led.h>
 #include <libsc/com/motor.h>
 #include <libsc/com/uart_device.h>
+#include<libsc/com/encoder.h>
 
 namespace magnetic
 {
@@ -51,6 +52,12 @@ public:
 	{
 		m_motor[1].SetPower(power);
 	}
+
+	void UpdateEncoder(const uint8_t id)
+	{
+		m_encoder[id].Update();
+	}
+
 
 	void AddMotorPower(const uint16_t factor)
 	{
@@ -110,7 +117,14 @@ public:
 
 	uint8_t GetRightPercentge() const;
 
+	int16_t GetEncoderCount(const uint8_t id)
+	{
+		return m_encoder[id].GetCount();
+	}
+
+
 private:
+	libsc::Encoder m_encoder[2];
 	libsc::FutabaS3010 m_servo;
 	libsc::Led m_leds[4];
 	libsc::Motor m_motor[2];

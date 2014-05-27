@@ -20,7 +20,7 @@
 using namespace std;
 using libutil::Clock;
 
-#define MOTOR_MAX_PWM 7000
+#define MOTOR_MAX_PWM 6500
 
 namespace linear_ccd
 {
@@ -86,10 +86,32 @@ constexpr SpeedConstant CONSTANTS[] =
 		//{290, 0, 106.5f, 0.0f, 27.5f},
 		//{330, 0, 106.5f, 0.0f, 27.5f},
 
-		{340, 0, 106.5f, 0.0f, 27.5f},
-		{340, 0, 106.5f, 0.0f, 27.5f},
-		{340, 0, 106.5f, 0.0f, 27.5f},
-		{340, 0, 106.5f, 0.0f, 27.5f},
+		/* ??? Values for new tires on air ???
+		{120, 0, 26.8f, 0.0f, 10.0f},
+		{180, 0, 26.8f, 0.0f, 10.0f},
+		{235, 0, 26.8f, 0.0f, 10.0f},
+		{290, 0, 26.8f, 0.0f, 10.0f},
+		*/
+		{180, 0, 578.0f, 0.0f, 57.8f},
+		{200, 0, 578.0f, 0.0f, 57.8f},
+		{240, 0, 578.0f, 0.0f, 57.8f},
+		{280, 0, 578.0f, 0.0f, 57.8f},
+
+		{120, 0, 578.0f, 0.0f, 57.8f},
+		{180, 0, 578.0f, 0.0f, 57.8f},
+		{200, 0, 578.0f, 0.0f, 57.8f},
+		{220, 0, 578.0f, 0.0f, 57.8f},
+
+		{350, 0, 555.0f, 0.0f, 27.5f},
+		{350, 0, 555.0f, 0.0f, 27.5f},
+		{350, 0, 555.0f, 0.0f, 27.5f},
+		{350, 0, 555.0f, 0.0f, 27.5f},
+
+		// Mode 5~8 are manual modes
+		{155, 0, 26.8f, 0.0f, 10.0f},
+		{-155, 0, 26.8f, 0.0f, 10.0f},
+		{240, 0, 26.8f, 0.0f, 10.0f},
+		{-240, 0, 26.8f, 0.0f, 10.0f},
 
 		{235, 0, 139.833f, 0.0f, 136.75f},
 		{235, 0, 139.833f, 0.0f, 136.75f},
@@ -142,7 +164,6 @@ constexpr SpeedConstant CONSTANTS[] =
 };
 
 //#define TURN_CONSTANTS CONSTANTS
-
 constexpr SpeedConstant TURN_CONSTANTS[] =
 {
 		{0, 0, 0.0f, 0.0f, 0.0f},
@@ -156,10 +177,21 @@ constexpr SpeedConstant TURN_CONSTANTS[] =
 		//{140, 0, 106.5f, 0.0f, 27.5f},
 		//{250, 0, 106.5f, 0.0f, 27.5f},
 
-		{225, 0, 106.5f, 0.0f, 27.5f},
-		{225, 0, 106.5f, 0.0f, 27.5f},
-		{225, 0, 106.5f, 0.0f, 27.5f},
-		{225, 0, 106.5f, 0.0f, 27.5f},
+		{160, 0, 578.0f, 0.0f, 57.8f},
+		{160, 0, 578.0f, 0.0f, 57.8f},
+		{160, 0, 578.0f, 0.0f, 57.8f},
+		{160, 0, 578.0f, 0.0f, 57.8f},
+
+		{120, 0, 578.0f, 0.0f, 57.8f},
+		{140, 0, 578.0f, 0.0f, 57.8f},
+		{140, 0, 578.0f, 0.0f, 57.8f},
+		{140, 0, 578.0f, 0.0f, 57.8f},
+
+		// Mode 5~8 are manual modes
+		{155, 0, 106.5f, 0.0f, 27.5f},
+		{-155, 0, 106.5f, 0.0f, 27.5f},
+		{240, 0, 106.5f, 0.0f, 27.5f},
+		{-240, 0, 106.5f, 0.0f, 27.5f},
 
 		{480, 1720, 30.5f, 3.1f, 15.5f},
 		{480, 1720, 27.5f, 3.1f, 15.5f},
@@ -225,7 +257,7 @@ void SpeedControl1::Control(Car *car)
 #endif
 
 	int power;
-	if (abs(car->GetTurning()) <= 40)
+	if (abs(car->GetTurning()) <= 38)
 	{
 		UpdatePid(true);
 		power = m_pid.Calc(time, count) + CONSTANTS[m_mode].pwm;
@@ -240,11 +272,11 @@ void SpeedControl1::Control(Car *car)
 	//iprintf("%d, %d\n", count, power);
 
 	// Prevent the output going crazy due to initially idle encoder
-	if (m_is_startup && time < 1250 + LinearCcdApp::INITIAL_DELAY)
+	if (m_is_startup && time < 1000 + LinearCcdApp::INITIAL_DELAY)
 	{
 		const int clamp_power = car->GetMotorPower()
-				+ libutil::Clamp<int>(-450, power - car->GetMotorPower(),
-						450);
+				+ libutil::Clamp<int>(-350, power - car->GetMotorPower(),
+						350);
 		car->SetMotorPower(clamp_power);
 	}
 	else
@@ -252,9 +284,15 @@ void SpeedControl1::Control(Car *car)
 		if (m_is_startup)
 		{
 			m_is_startup = false;
-			//m_pid.Restart();
+			m_pid.Restart();
 		}
-		car->SetMotorPower(libutil::Clamp<int>(-3000, power, MOTOR_MAX_PWM));
+		if (abs(power - car->GetMotorPower()) > 1800)
+		{
+			// Max 2500 diff in one step
+			power = libutil::Clamp<int>(car->GetMotorPower() - 1800, power,
+					car->GetMotorPower() + 1800);
+		}
+		car->SetMotorPower(libutil::Clamp<int>(-MOTOR_MAX_PWM, power, MOTOR_MAX_PWM));
 	}
 
 #ifdef DEBUG

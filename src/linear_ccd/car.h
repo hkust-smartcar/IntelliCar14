@@ -9,11 +9,14 @@
 #ifndef LINEAR_CCD_CAR_H_
 #define LINEAR_CCD_CAR_H_
 
+#include <bitset>
+
 #include <libsc/com/bluetooth.h>
 #include <libsc/com/button.h>
 #include <libsc/com/encoder.h>
 #include <libsc/com/gyroscope.h>
 #include <libsc/com/lcd.h>
+#include <libsc/com/lcd_console.h>
 #include <libsc/com/led.h>
 #include <libsc/com/light_sensor.h>
 #include <libsc/com/linear_ccd.h>
@@ -80,9 +83,24 @@ public:
 		m_leds[id].SetEnable(flag);
 	}
 
-	const bool* SampleCcd()
+	void StartCcdSample()
 	{
-		return m_ccd.SampleData();
+		m_ccd.StartSample();
+	}
+
+	bool CcdSampleProcess()
+	{
+		return m_ccd.SampleProcess();
+	}
+
+	const std::bitset<libsc::LinearCcd::SENSOR_W>& GetCcdSample() const
+	{
+		return m_ccd.GetData();
+	}
+
+	bool IsCcdReady() const
+	{
+		return m_ccd.IsImageReady();
 	}
 
 	void UpdateEncoder()
@@ -114,6 +132,11 @@ public:
 			const uint8_t w, const uint8_t h, const uint8_t *pixel)
 	{
 		m_lcd.DrawGrayscalePixelBuffer(x, y, w, h, pixel);
+	}
+
+	void LcdPrintString(const char *str, const uint16_t color)
+	{
+		m_lcd_console.PrintString(str, color);
 	}
 
 	bool IsMotorForward() const;
@@ -173,6 +196,7 @@ private:
 	libsc::Encoder m_encoder;
 	libsc::Gyroscope m_gyro;
 	libsc::Lcd m_lcd;
+	libsc::LcdConsole m_lcd_console;
 	libsc::Led m_leds[4];
 	libsc::LightSensor m_light_sensors[2];
 	libsc::LinearCcd m_ccd;

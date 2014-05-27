@@ -10,6 +10,7 @@
 #include <cstdio>
 #include <cmath>
 #include <algorithm>
+#include <bitset>
 
 #include "linear_ccd/debug.h"
 
@@ -23,10 +24,10 @@
 
 using namespace std;
 
-#define VALID_PIXEL 244
-#define VALID_OFFSET 6
+#define VALID_PIXEL (128 - 6)
+#define VALID_OFFSET 3
 
-#define CCD_MID_POS 122
+#define CCD_MID_POS (VALID_PIXEL / 2)
 
 namespace linear_ccd
 {
@@ -47,16 +48,16 @@ struct ServoConstant
 constexpr ServoConstant CONSTANTS[] =
 {
 		//{0.0f, 0.0f, 0.0f, 0, 0},
-		{1.55f, 0.0f, 0.0f, 62, 62},
+		{2.8f, 0.0f, 1.3f, 58, 58},
 		//
 		//{1.57f, 0.0f, 0.0f, 62, 62},
 		//{1.62f, 0.0f, 0.0f, 62, 62},
 		//{1.67f, 0.0f, 0.0f, 62, 62},
 
-		{1.57f, 0.0f, 0.82f, 62, 62},
-		{1.57f, 0.0f, 0.92f, 62, 62},
-		{1.57f, 0.0f, 1.02f, 62, 62},
-		{1.57f, 0.0f, 1.12f, 62, 62},
+		{3.35f, 0.0f, 2.85f, 60, 60},
+		{3.35f, 0.0f, 2.85f, 60, 60},
+		{3.35f, 0.0f, 2.85f, 60, 60},
+		{3.35f, 0.0f, 2.85f, 60, 60},
 
 		//{1.275f, 0.0f, 0.88f, 45, 45},
 		{1.55f, 0.0f, 0.5f, 60, 60},
@@ -120,7 +121,8 @@ void DirControlAlgorithm::OnFinishWarmUp(Car *car)
 	m_servo_pid.Restart();
 }
 
-void DirControlAlgorithm::Control(const bool *ccd_data)
+void DirControlAlgorithm::Control(
+		const bitset<libsc::LinearCcd::SENSOR_W> &ccd_data)
 {
 	if (DetectSlope())
 	{
@@ -132,15 +134,16 @@ void DirControlAlgorithm::Control(const bool *ccd_data)
 		return;
 	}
 
-	ccd_data += VALID_OFFSET;
 	ScanAllWhiteOrAllBlackSample(ccd_data);
 
+	int16_t turning = 0;
+	bool is_turning_set = false;
 	bool detect_left_flag = false;
 	int current_1st_left_edge = VALID_PIXEL;
 	for (int i = libutil::Clamp<int>(0, last_sample_error_pos, VALID_PIXEL - 1);
 			i >= 0; --i)
 	{ // scan from last_sample_error_pos to left edge
-		if (ccd_data[i])
+		if (!ccd_data[i + VALID_OFFSET])
 		{
 			current_1st_left_edge = i;
 			detect_left_flag = true;
@@ -153,7 +156,7 @@ void DirControlAlgorithm::Control(const bool *ccd_data)
 	for (int i = libutil::Clamp<int>(0, last_sample_error_pos, VALID_PIXEL - 1);
 			i < VALID_PIXEL; ++i)
 	{  // scan from last_sample_error_pos to right edge
-		if (ccd_data[i])
+		if (!ccd_data[i + VALID_OFFSET])
 		{
 			current_1st_right_edge = i;
 			detect_right_flag = true;
@@ -248,6 +251,16 @@ void DirControlAlgorithm::Control(const bool *ccd_data)
 		if_case = 60;
 		//current_mid_error_pos = ccd_mid_pos + current_dir_error;
 		current_mid_error_pos = last_sample_error_pos;
+		if (m_car->GetTurning() >= 45)
+		{
+			turning = 100;
+			is_turning_set = true;
+		}
+		else if (m_car->GetTurning() <= -45)
+		{
+			turning = -100;
+			is_turning_set = true;
+		}
 	}
 
 #ifdef DEBUG_PRINT_CASE
@@ -259,7 +272,11 @@ void DirControlAlgorithm::Control(const bool *ccd_data)
 	m_servo_pid.Print("servo");
 #endif
 
-	const int turning = m_servo_pid.Calc(current_mid_error_pos);
+	// Opposite direction
+	if (!is_turning_set)
+	{
+		turning = -m_servo_pid.Calc(current_mid_error_pos);
+	}
 #ifdef DEBUG_PRINT_TURNING
 	LOG_D("turning :%d", turning);
 #endif
@@ -285,7 +302,8 @@ bool DirControlAlgorithm::DetectSlope()
 	return (abs(filter - m_flat_gyro_angle) >= 2500);
 }
 
-void DirControlAlgorithm::ScanAllWhiteOrAllBlackSample(const bool *ccd_data)
+void DirControlAlgorithm::ScanAllWhiteOrAllBlackSample(
+		const bitset<libsc::LinearCcd::SENSOR_W> &ccd_data)
 {
 	all_white_smaple_flag = true;
 	all_black_smaple_flag = true;
@@ -293,7 +311,7 @@ void DirControlAlgorithm::ScanAllWhiteOrAllBlackSample(const bool *ccd_data)
 	for (int i = 0; i < VALID_PIXEL
 			&& (all_black_smaple_flag || all_white_smaple_flag); ++i)
 	{
-		if (!ccd_data[i])
+		if (ccd_data[i + VALID_OFFSET])
 		{
 			all_black_smaple_flag = false;
 		}

@@ -22,8 +22,8 @@
 
 #include "linear_ccd/car.h"
 
-#define SERVO_MID_DEGREE 95
-#define SERVO_AMPLITUDE 85
+#define SERVO_MID_DEGREE 93
+#define SERVO_AMPLITUDE 25
 #define SERVO_MAX_DEGREE (SERVO_MID_DEGREE + SERVO_AMPLITUDE)
 #define SERVO_MIN_DEGREE (SERVO_MID_DEGREE - SERVO_AMPLITUDE)
 
@@ -34,13 +34,15 @@ namespace linear_ccd
 
 Car::Car()
 		: m_buttons{Button(0), Button(1), Button(2), Button(3)}, m_encoder(0),
-		  m_gyro(10), m_leds{Led(0), Led(1), Led(2), Led(3)},
-		  m_light_sensors{LightSensor(0), LightSensor(1)}, m_motor(0), m_servo(0)
+		  m_gyro(10), m_lcd_console(&m_lcd),
+		  m_leds{Led(0), Led(1), Led(2), Led(3)},
+		  m_light_sensors{LightSensor(0), LightSensor(1)}, m_ccd(1), m_motor(0),
+		  m_servo(0)
 {
 	SetMotorPower(0);
 	m_servo.SetDegree(SERVO_MID_DEGREE);
 	m_bt.StartReceive();
-	m_lcd.Clear(Lcd::GetRgb565(0x33, 0xb5, 0xe5));
+	m_lcd.Clear(libutil::GetRgb565(0x33, 0xB5, 0xE5));
 }
 
 void Car::SetMotorDirection(const bool is_forward)
@@ -80,7 +82,8 @@ void Car::DropMotorPowerTil(const uint16_t factor, const uint16_t min)
 
 void Car::SetTurning(const int16_t percentage)
 {
-	const int16_t _percentage = libutil::Clamp<int16_t>(-100, percentage, 100);
+	// Servo's rotation dir is opposite to our wheels
+	const int16_t _percentage = libutil::Clamp<int16_t>(-100, -percentage, 100);
 	m_servo.SetDegree(SERVO_MID_DEGREE + (_percentage * SERVO_AMPLITUDE / 100));
 }
 
@@ -91,7 +94,7 @@ bool Car::IsMotorForward() const
 
 int16_t Car::GetTurning() const
 {
-	return (m_servo.GetDegree() - SERVO_MID_DEGREE) * 100 / SERVO_AMPLITUDE;
+	return (m_servo.GetDegree() - SERVO_MID_DEGREE) * -100 / SERVO_AMPLITUDE;
 }
 
 }

@@ -12,6 +12,7 @@
 
 #include <cstdint>
 #include <cstdlib>
+#include <bitset>
 
 #include <log.h>
 #include <MK60_gpio.h>
@@ -23,14 +24,16 @@
 #include <libutil/misc.h>
 #include <libutil/string.h>
 
+#include "linear_ccd/bt_controller.h"
 #include "linear_ccd/car.h"
 #include "linear_ccd/linear_ccd_app.h"
 
+using namespace std;
 using libutil::Clock;
 
 #define LED_FREQ 250
-#define SERVO_FREQ 17
-#define SPEED_CTRL_FREQ 21
+#define SERVO_FREQ 21
+#define SPEED_CTRL_FREQ 19
 
 namespace linear_ccd
 {
@@ -38,7 +41,8 @@ namespace linear_ccd
 LinearCcdApp *LinearCcdApp::m_instance = nullptr;
 
 LinearCcdApp::LinearCcdApp()
-		: m_dir_control(&m_car), m_is_stop(false), m_mode(0)
+		: m_dir_control(&m_car), m_is_stop(false), m_mode(0),
+		  m_is_manual_interruptted(false)
 {
 	m_instance = this;
 }
@@ -57,6 +61,16 @@ void LinearCcdApp::Run()
 	int servo = 0;
 	while (true)
 	{
+#ifdef DEBUG_MANUAL_CONTROL
+		if (BtControlPass())
+		{
+			m_is_manual_interruptted = true;
+		}
+		if (m_is_manual_interruptted)
+		{
+			continue;
+		}
+#endif
 		/*
 		if (++servo > 100)
 		{
@@ -108,6 +122,14 @@ void LinearCcdApp::InitialStage()
 
 	m_dir_control.OnFinishWarmUp(&m_car);
 	m_speed_control.OnFinishWarmUp(&m_car);
+
+	// Dump first CCD sample
+	for (int i = 0; i < libsc::LinearCcd::SENSOR_W; ++i)
+	{
+		m_car.CcdSampleProcess();
+	}
+	m_car.StartCcdSample();
+	m_servo_state.prev_run = Clock::Time();
 }
 
 void LinearCcdApp::LedPass()
@@ -135,33 +157,35 @@ void LinearCcdApp::LedPass()
 void LinearCcdApp::ServoPass()
 {
 	const Clock::ClockInt time = Clock::Time();
-	if (Clock::TimeDiff(time, m_servo_state.prev_run) >= SERVO_FREQ)
+	if (Clock::TimeDiff(time, m_servo_state.prev_run) >= SERVO_FREQ
+			&& m_car.IsCcdReady())
 	{
+#if defined(DEBUG_PRINT_INTERVAL) || defined(DEBUG_LCD_PRINT_INTERVAL)
+		const Clock::ClockInt enter = Clock::Time();
+#endif
 #ifdef DEBUG_PRINT_INTERVAL
-		iprintf("servo freq: %d\n", Clock::TimeDiff(time, m_servo_state.prev_run));
+		iprintf("ccd freq: %d\n", Clock::TimeDiff(time, m_servo_state.prev_run));
+#endif
+#ifdef DEBUG_LCD_PRINT_INTERVAL
+		m_car.LcdPrintString(libutil::String::Format("ccd freq: %d\n",
+				Clock::TimeDiff(time, m_servo_state.prev_run)).c_str(),
+				libutil::GetRgb565(0x44, 0xc5, 0xf5));
 #endif
 
 		m_servo_state.prev_run = time;
+		m_car.StartCcdSample();
 
-		const bool *ccd_data = m_car.SampleCcd();
+		const bitset<libsc::LinearCcd::SENSOR_W> &ccd_data = FilterCcdData(
+				m_car.GetCcdSample());
 		m_dir_control.Control(ccd_data);
 
 #ifdef DEBUG_LCD_PRINT_CCD
 		static int y = 0;
-		const uint8_t buf_size = (libsc::LinearCcd::SENSOR_W - 12) / 2;
+		const uint8_t buf_size = libsc::LinearCcd::SENSOR_W;
 		uint8_t buf[buf_size] = {};
-		for (int i = 0, j = buf_size; i < libsc::LinearCcd::SENSOR_W - 12;
-				++i)
+		for (int i = 0; i < libsc::LinearCcd::SENSOR_W; ++i)
 		{
-			if (i % 2 == 0)
-			{
-				--j;
-			}
-			buf[j] += ccd_data[i + 6] ? 0x7F : 0x00;
-		}
-		for (int i = 0; i < buf_size; ++i)
-		{
-			buf[i] = 0xFF - buf[i];
+			buf[i] += ccd_data[i] ? 0xFF : 0x00;
 		}
 		m_car.LcdDrawGrayscalePixelBuffer(0, y, buf_size, 1, buf);
 		if (y++ >= libsc::Lcd::H)
@@ -173,14 +197,25 @@ void LinearCcdApp::ServoPass()
 #ifdef DEBUG_PRINT_CCD
 		// Send CCD data through UART
 		char str[libsc::LinearCcd::SENSOR_W];
-		for (int i = 6; i < libsc::LinearCcd::SENSOR_W - 6; ++i)
+		for (int i = 3; i < libsc::LinearCcd::SENSOR_W - 3; ++i)
 		{
 			str[i] = ccd_data[i] ? '#' : '.';
 		}
-		m_car.UartSendBuffer((uint8_t*)(str + 6), libsc::LinearCcd::SENSOR_W - 12);
+		m_car.UartSendBuffer((uint8_t*)(str + 3), libsc::LinearCcd::SENSOR_W - 6);
 		m_car.UartSendStr("\n");
 #endif
+
+#ifdef DEBUG_PRINT_INTERVAL
+		iprintf("ccd time: %d\n", Clock::TimeDiff(Clock::Time(), enter));
+#endif
+#ifdef DEBUG_LCD_PRINT_INTERVAL
+		m_car.LcdPrintString(libutil::String::Format("ccd time: %d\n",
+				Clock::TimeDiff(Clock::Time(), enter)).c_str(),
+				libutil::GetRgb565(0x44, 0xc5, 0xf5));
+#endif
 	}
+
+	m_car.CcdSampleProcess();
 }
 
 void LinearCcdApp::SpeedControlPass()
@@ -188,14 +223,36 @@ void LinearCcdApp::SpeedControlPass()
 	const Clock::ClockInt time = Clock::Time();
 	if (Clock::TimeDiff(time, m_speed_state.prev_run) >= SPEED_CTRL_FREQ)
 	{
+#if defined(DEBUG_PRINT_INTERVAL) || defined(DEBUG_LCD_PRINT_INTERVAL)
+		const Clock::ClockInt enter = Clock::Time();
+#endif
 #ifdef DEBUG_PRINT_INTERVAL
 		iprintf("speed freq: %d\n", Clock::TimeDiff(time, m_speed_state.prev_run));
+#endif
+#ifdef DEBUG_LCD_PRINT_INTERVAL
+		m_car.LcdPrintString(libutil::String::Format("spd freg: %d\n",
+				Clock::TimeDiff(time, m_speed_state.prev_run)).c_str(),
+				libutil::GetRgb565(0xf5, 0x44, 0xc5));
 #endif
 
 		m_speed_state.prev_run = time;
 
 		m_speed_control.Control(&m_car);
+
+#ifdef DEBUG_PRINT_INTERVAL
+		iprintf("speed time: %d\n", Clock::TimeDiff(Clock::Time(), enter));
+#endif
+#ifdef DEBUG_LCD_PRINT_INTERVAL
+		m_car.LcdPrintString(libutil::String::Format("spd time: %d\n",
+				Clock::TimeDiff(Clock::Time(), enter)).c_str(),
+				libutil::GetRgb565(0x44, 0xc5, 0xf5));
+#endif
 	}
+}
+
+bool LinearCcdApp::BtControlPass()
+{
+	return m_bt_control.Control(&m_car);
 }
 
 int LinearCcdApp::FwriteHandler(int, char *ptr, int len)
@@ -230,6 +287,36 @@ void LinearCcdApp::DetectEmergencyStop()
 		// Emergency stop
 		m_is_stop = true;
 	}
+}
+
+bitset<libsc::LinearCcd::SENSOR_W> LinearCcdApp::FilterCcdData(
+		const bitset<libsc::LinearCcd::SENSOR_W> &data) const
+{
+	bitset<libsc::LinearCcd::SENSOR_W> result = data;
+	constexpr int block_size = 1;
+	// Simple alg'm to filter out peculiar color in the middle
+	for (int i = block_size; i < libsc::LinearCcd::SENSOR_W - block_size; ++i)
+	{
+		int value = 0;
+		for (int j = 0; j < block_size; ++j)
+		{
+			value += data[i - j - 1];
+		}
+		for (int j = 0; j < block_size; ++j)
+		{
+			value += data[i + j + 1];
+		}
+		const int threshold = ceilf((block_size * 2) * 0.65f);
+		if (value >= threshold)
+		{
+			result[i] = true;
+		}
+		else if (value <= block_size * 2 - threshold)
+		{
+			result[i] = false;
+		}
+	}
+	return result;
 }
 
 }

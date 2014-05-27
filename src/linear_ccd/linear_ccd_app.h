@@ -9,10 +9,15 @@
 #ifndef LINEAR_CCD_APP_H_
 #define LINEAR_CCD_APP_H_
 
+#include <cstdint>
+#include <bitset>
+
 #include <libutil/clock.h>
 #include <libutil/pid_controller.h>
 
+#include "linear_ccd/bt_controller.h"
 #include "linear_ccd/car.h"
+#include "linear_ccd/debug.h"
 #include "linear_ccd/dir_control_algorithm.h"
 #include "linear_ccd/speed_control_strategy.h"
 #include "linear_ccd/speed_control_1.h"
@@ -66,8 +71,11 @@ private:
 	void LedPass();
 	void ServoPass();
 	void SpeedControlPass();
+	bool BtControlPass();
 	void DetectStopLine();
 	void DetectEmergencyStop();
+	std::bitset<libsc::LinearCcd::SENSOR_W> FilterCcdData(
+			const std::bitset<libsc::LinearCcd::SENSOR_W> &data) const;
 
 	void SetConstant(const bool is_straight);
 
@@ -82,6 +90,11 @@ private:
 	bool m_is_stop;
 
 	uint8_t m_mode;
+
+#ifdef DEBUG_MANUAL_CONTROL
+	BtController m_bt_control;
+	bool m_is_manual_interruptted;
+#endif
 
 	static LinearCcdApp *m_instance;
 };

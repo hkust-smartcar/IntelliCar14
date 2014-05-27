@@ -10,6 +10,7 @@
 #define LINEAR_CCD_DETECTION_ALGORITHM_H_
 
 #include <cstdint>
+#include <bitset>
 
 #include <libutil/kalman_filter.h>
 #include <libutil/pid_controller.h>
@@ -30,12 +31,13 @@ public:
 	explicit DirControlAlgorithm(Car *car);
 
 	void OnFinishWarmUp(Car *car);
-	void Control(const bool *ccd_data);
+	void Control(const std::bitset<libsc::LinearCcd::SENSOR_W> &ccd_data);
 	void SetMode(const Uint mode);
 
 private:
 	bool DetectSlope();
-	void ScanAllWhiteOrAllBlackSample(const bool *ccd_data);
+	void ScanAllWhiteOrAllBlackSample(
+			const std::bitset<libsc::LinearCcd::SENSOR_W> &ccd_data);
 
 	Car *m_car;
 	int16_t m_flat_gyro_angle;

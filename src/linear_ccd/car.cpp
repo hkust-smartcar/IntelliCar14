@@ -22,7 +22,7 @@
 
 #include "linear_ccd/car.h"
 
-#define SERVO_MID_DEGREE 93
+#define SERVO_MID_DEGREE 91
 #define SERVO_AMPLITUDE 25
 #define SERVO_MAX_DEGREE (SERVO_MID_DEGREE + SERVO_AMPLITUDE)
 #define SERVO_MIN_DEGREE (SERVO_MID_DEGREE - SERVO_AMPLITUDE)
@@ -36,7 +36,7 @@ Car::Car()
 		: m_buttons{Button(0), Button(1), Button(2), Button(3)}, m_encoder(0),
 		  m_gyro(10), m_lcd_console(&m_lcd),
 		  m_leds{Led(0), Led(1), Led(2), Led(3)},
-		  m_light_sensors{LightSensor(0), LightSensor(1)}, m_ccd(1), m_motor(0),
+		  m_light_sensors{LightSensor(0), LightSensor(1)}, m_ccd(0), m_motor(0),
 		  m_servo(0)
 {
 	SetMotorPower(0);

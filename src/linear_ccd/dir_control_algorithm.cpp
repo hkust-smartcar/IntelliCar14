@@ -54,10 +54,14 @@ constexpr ServoConstant CONSTANTS[] =
 		//{1.62f, 0.0f, 0.0f, 62, 62},
 		//{1.67f, 0.0f, 0.0f, 62, 62},
 
-		{3.35f, 0.0f, 2.85f, 60, 60},
-		{3.35f, 0.0f, 2.85f, 60, 60},
-		{3.35f, 0.0f, 2.85f, 60, 60},
-		{3.35f, 0.0f, 2.85f, 60, 60},
+		//{1.67f, 0.0f, 0.0f, 60, 60},
+		//{1.67f, 0.0f, 0.0f, 60, 60},
+		//{1.67f, 0.0f, 0.0f, 60, 60},
+		//{1.67f, 0.0f, 0.0f, 60, 60},
+		{3.05f, 0.0f, 0.69f, 59, 59},
+		{3.05f, 0.0f, 0.69f, 59, 59},
+		{3.05f, 0.0f, 0.69f, 59, 59},
+		{3.05f, 0.0f, 0.69f, 59, 59},
 
 		//{1.275f, 0.0f, 0.88f, 45, 45},
 		{1.55f, 0.0f, 0.5f, 60, 60},
@@ -93,6 +97,16 @@ constexpr ServoConstant CONSTANTS[] =
 		//PWM[-4k, 7k]
 		//turn threshold 40
 		//{1.57f, 0.0f, 1.02f, 62, 62},
+};
+
+constexpr ServoConstant TURN_CONSTANTS[] =
+{
+		{2.8f, 0.0f, 1.3f, 58, 58},
+
+		{3.25f, 0.0f, 0.34f, 59, 59},
+		{3.25f, 0.0f, 0.34f, 59, 59},
+		{3.25f, 0.0f, 0.34f, 59, 59},
+		{3.25f, 0.0f, 0.34f, 59, 59},
 };
 
 }
@@ -280,6 +294,15 @@ void DirControlAlgorithm::Control(
 #ifdef DEBUG_PRINT_TURNING
 	LOG_D("turning :%d", turning);
 #endif
+
+	if (turning <= 38)
+	{
+		UpdatePid(true);
+	}
+	else
+	{
+		UpdatePid(false);
+	}
 	m_car->SetTurning(turning);
 
 	/*
@@ -329,6 +352,22 @@ void DirControlAlgorithm::SetMode(const Uint mode)
 	m_servo_pid.SetKi(CONSTANTS[m_mode].ki);
 	m_servo_pid.SetKd(CONSTANTS[m_mode].kd);
 	m_servo_pid.Restart();
+}
+
+void DirControlAlgorithm::UpdatePid(const bool is_straight)
+{
+	if (is_straight)
+	{
+		m_servo_pid.SetKp(CONSTANTS[m_mode].kp);
+		m_servo_pid.SetKi(CONSTANTS[m_mode].ki);
+		m_servo_pid.SetKd(CONSTANTS[m_mode].kd);
+	}
+	else
+	{
+		m_servo_pid.SetKp(TURN_CONSTANTS[m_mode].kp);
+		m_servo_pid.SetKi(TURN_CONSTANTS[m_mode].ki);
+		m_servo_pid.SetKd(TURN_CONSTANTS[m_mode].kd);
+	}
 }
 
 }

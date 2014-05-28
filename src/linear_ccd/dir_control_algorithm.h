@@ -38,6 +38,7 @@ private:
 	bool DetectSlope();
 	void ScanAllWhiteOrAllBlackSample(
 			const std::bitset<libsc::LinearCcd::SENSOR_W> &ccd_data);
+	void UpdatePid(const bool is_straight);
 
 	Car *m_car;
 	int16_t m_flat_gyro_angle;

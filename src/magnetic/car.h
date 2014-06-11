@@ -53,9 +53,10 @@ public:
 		m_motor[1].SetPower(power);
 	}
 
-	void UpdateEncoder(const uint8_t id)
+	void UpdateEncoder()
 	{
-		m_encoder[id].Update();
+		m_encoder[0].Update();
+		m_encoder[1].Update();
 	}
 
 

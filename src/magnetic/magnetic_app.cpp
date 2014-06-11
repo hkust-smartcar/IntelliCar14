@@ -45,19 +45,21 @@ int DELTA_SENSOR_VALUE,DELTA_SENSOR_VALUE_ADJ,DELTA_SENSOR_VALUE_ADJ_prev;
 
 volatile int  MID_SENSOR_VALUE;
 
+volatile int LEFT_FINAL,RIGHT_FINAL;
+
 volatile float encoder,encoderl,encoderr;
 
 volatile int angle,err,err_prev,err_sum;
 
-volatile int spdr=2200,spdl=2200, temp;
+volatile int spdr,spdl, temp;
 
-int spd=2700;
+int spd=1200;
 
 #define differential 70
 
 long int LEFT_SENSOR_VALUE_PREV,RIGHT_SENSOR_VALUE_PREV;
 
-float pos_kp=1.4, pos_kd=1;
+float pos_kp=0.6, pos_kd=1;
 
 int no1;
 
@@ -73,7 +75,7 @@ volatile float testing_p = 0.9;
 
 volatile int encodercountl=0,encodercountr=0;
 
-volatile int p=350; //speed control pid
+volatile int p=100; //speed control pid
 
 #define K_ID 0
 
@@ -97,9 +99,10 @@ MagneticApp::~MagneticApp()
 
 void MagneticApp::InitAll()
 {
+	adc_init(ADC0_SE10);
 	adc_init(ADC0_SE14);
-	adc_init(ADC0_SE15);
-	adc_init(ADC0_SE4b);
+	adc_init(ADC1_SE4a);
+	adc_init(ADC1_SE17);
 	//adc_init(ADC1_SE5b);
 }
 
@@ -118,10 +121,10 @@ void MagneticApp::CaluServoPercentage()
 	if (DELTA_SENSOR_VALUE_ADJ <-107)
 		(DELTA_SENSOR_VALUE_ADJ =-137);
 	int difference3 = DELTA_SENSOR_VALUE_ADJ_prev-DELTA_SENSOR_VALUE_ADJ;
-	if(difference3>-25&&difference3<25)
-		(DELTA_SENSOR_VALUE_ADJ=0);
+	//if(difference3>-25&&difference3<25)
+		//(DELTA_SENSOR_VALUE_ADJ=0);
 	if (LEFT_SENSOR_VALUE_Y>1000)
-	DELTA_SENSOR_VALUE_ADJ=DELTA_SENSOR_VALUE_ADJ*3;
+	DELTA_SENSOR_VALUE_ADJ=DELTA_SENSOR_VALUE_ADJ*1.8;
 	if(LEFT_SENSOR_VALUE_Y>1000&&DELTA_SENSOR_VALUE<1500&&DELTA_SENSOR_VALUE>-1500)
 		DELTA_SENSOR_VALUE_ADJ=DELTA_SENSOR_VALUE_ADJ_prev;
 	//LOG_W("%d",DELTA_SENSOR_VALUE_ADJ);
@@ -138,8 +141,7 @@ __ISR void MagneticApp::Pit1Handler()
 __ISR void MagneticApp::Pit3Handler() //encoder + speed control pid
 {
 
-	m_instance->m_car.UpdateEncoder(0);
-	m_instance->m_car.UpdateEncoder(1);
+	m_instance->m_car.UpdateEncoder();
 	encodercountl = m_instance->m_car.GetEncoderCount(0);
 	encodercountr = m_instance->m_car.GetEncoderCount(1);
 
@@ -185,23 +187,27 @@ void MagneticApp::GetSensorValue()
 {
 	int i,j,k,x,y,z;
 	//float theta;
-	x = adc_once(ADC0_SE14,ADC_16bit)* 1.64416483;
-	y = adc_once(ADC0_SE14,ADC_16bit)* 1.64416483;
-	z = adc_once(ADC0_SE14,ADC_16bit)* 1.64416483;
+	x = adc_once(ADC0_SE10,ADC_16bit);//* 1.64416483;
+	y = adc_once(ADC0_SE10,ADC_16bit);//* 1.64416483;
+	z = adc_once(ADC0_SE10,ADC_16bit);//* 1.64416483;
 	LEFT_SENSOR_VALUE_X=(x+y+z)/3;
-	i = adc_once(ADC0_SE15,ADC_16bit);
-	j = adc_once(ADC0_SE15,ADC_16bit);
-	k = adc_once(ADC0_SE15,ADC_16bit);
+	i = adc_once(ADC0_SE14,ADC_16bit);
+	j = adc_once(ADC0_SE14,ADC_16bit);
+	k = adc_once(ADC0_SE14,ADC_16bit);
 	RIGHT_SENSOR_VALUE_X=(i+j+k)/3;
-	LEFT_SENSOR_VALUE_Y=16369.0f - adc_once(ADC0_SE4b,ADC_16bit);
-	//RIGHT_SENSOR_VALUE_Y = adc_once(ADC1_SE5b,ADC_16bit);
-	LEFT_SENSOR_VALUE_X= (round((LEFT_SENSOR_VALUE_X)/150))*150;
-	RIGHT_SENSOR_VALUE_X= (round(RIGHT_SENSOR_VALUE_X/150))*150;
+	LEFT_SENSOR_VALUE_Y=(adc_once(ADC1_SE4a,ADC_16bit))/2;
+	RIGHT_SENSOR_VALUE_Y = adc_once(ADC1_SE17,ADC_16bit)/2;
+	//LEFT_SENSOR_VALUE_X= (round((LEFT_SENSOR_VALUE_X)/150))*150;
+	//RIGHT_SENSOR_VALUE_X= (round(RIGHT_SENSOR_VALUE_X/150))*150;
+	LEFT_FINAL=((LEFT_SENSOR_VALUE_Y*LEFT_SENSOR_VALUE_Y)+LEFT_SENSOR_VALUE_X*LEFT_SENSOR_VALUE_X)/10000;
+	LEFT_FINAL=sqrt(LEFT_FINAL)*100;
+	RIGHT_FINAL=((RIGHT_SENSOR_VALUE_Y*RIGHT_SENSOR_VALUE_Y)+RIGHT_SENSOR_VALUE_X*RIGHT_SENSOR_VALUE_X)/10000;
+	RIGHT_FINAL=sqrt(RIGHT_FINAL)*100;
 	//RIGHT_SENSOR_VALUE_BACK=(round((RIGHT_SENSOR_VALUE_BACK)/250))*250;
 	//theta= atan(MID_SENSOR_VALUE/(LEFT_SENSOR_VALUE-2120));
 	//LEFT_SENSOR_VALUE=(LEFT_SENSOR_VALUE+2120)*cos(atan(MID_SENSOR_VALUE/(LEFT_SENSOR_VALUE+2120)));
 	//RIGHT_SENSOR_VALUE=RIGHT_SENSOR_VALUE*cos(atan((RIGHT_SENSOR_VALUE)/MID_SENSOR_VALUE));
-	DELTA_SENSOR_VALUE = (LEFT_SENSOR_VALUE_X - RIGHT_SENSOR_VALUE_X);
+	DELTA_SENSOR_VALUE = (LEFT_FINAL - RIGHT_FINAL);
 	//no1=DELTA_SENSOR_VALUE_PREV-DELTA_SENSOR_VALUE;
 	//if (no1<-300&&(DELTA_SENSOR_VALUE>-5000||DELTA_SENSOR_VALUE<5000))
 		//(DELTA_SENSOR_VALUE=DELTA_SENSOR_VALUE_PREV);
@@ -241,13 +247,13 @@ void AdjustSpd()
 
 void MagneticApp::Run()
 {
-	__g_fwrite_handler = FwriteHandler;
+	/*__g_fwrite_handler = FwriteHandler;
 	libutil::Clock::Init();
 	encoder=0.046*spd-45;
 	SetIsr(PIT3_VECTORn, Pit3Handler);
 	pit_init_ms(PIT3, 30);
 	EnableIsr(PIT3_VECTORn);
-
+*/
 /*
 	SetIsr(PIT1_VECTORn, Pit1Handler);
 	pit_init_ms(PIT1, 30);
@@ -257,8 +263,8 @@ void MagneticApp::Run()
 	{
 		InitAll();
 		GetSensorValue();
-		NoiseFiltering();
-		//iprintf("%f\n",filter);
+		//NoiseFiltering();
+		iprintf("abc/n");
 		CaluServoPercentage();
 		m_car.SetTurning(DELTA_SENSOR_VALUE_ADJ);
 		m_car.SetMotorDirection(0);
@@ -266,12 +272,12 @@ void MagneticApp::Run()
 		//err= abs(DELTA_SENSOR_VALUE)/9648;
 		err = err_prev;
 		//LOG_W("%d,%d,%d,%d",DELTA_SENSOR_VALUE_ADJ,LEFT_SENSOR_VALUE_Y,LEFT_SENSOR_VALUE_X,RIGHT_SENSOR_VALUE_X);//,LEFT_SENSOR_VALUE_Y);
-		LOG_W("%d,%d",LEFT_SENSOR_VALUE_X,RIGHT_SENSOR_VALUE_X);
-		//LOG_W("OK\n");
-		DELAY_MS(10);
+		LOG_W("%d,%d,%d",LEFT_FINAL,RIGHT_SENSOR_VALUE_X,RIGHT_SENSOR_VALUE_Y);
+		DELAY_MS(60);
 		LEFT_SENSOR_VALUE_Y_prev=LEFT_SENSOR_VALUE_Y;
 		RIGHT_SENSOR_VALUE_X_prev=RIGHT_SENSOR_VALUE_X;
 		DELTA_SENSOR_VALUE_ADJ=DELTA_SENSOR_VALUE_ADJ_prev;
+		m_instance->m_car.SetMotorPowerLeft(2700),m_instance->m_car.SetMotorPowerRight(2700);
 	}
 
 }

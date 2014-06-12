@@ -66,16 +66,28 @@ private:
 		{}
 	};
 
+	struct JoystickState
+	{
+		libutil::Clock::ClockInt prev_run;
+		uint8_t delay;
+
+		JoystickState()
+				: prev_run(0), delay(0)
+		{}
+	};
+
 	void InitialStage();
 
 	void LedPass();
 	void ServoPass();
 	void SpeedControlPass();
+	void JoystickPass();
 	bool BtControlPass();
 	void DetectStopLine();
 	void DetectEmergencyStop();
 	std::bitset<libsc::LinearCcd::SENSOR_W> FilterCcdData(
 			const std::bitset<libsc::LinearCcd::SENSOR_W> &data) const;
+	int16_t ConcludeTurning(const int16_t up_turn, const int16_t down_turn) const;
 
 	void SetConstant(const bool is_straight);
 
@@ -84,8 +96,9 @@ private:
 	LedState m_led_state;
 	ServoState m_servo_state;
 	SpeedState m_speed_state;
+	JoystickState m_joystick_state;
 
-	DirControlAlgorithm m_dir_control;
+	DirControlAlgorithm m_dir_control[2];
 	SpeedControl1 m_speed_control;
 	bool m_is_stop;
 

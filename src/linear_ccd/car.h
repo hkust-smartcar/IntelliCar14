@@ -15,12 +15,14 @@
 #include <libsc/com/button.h>
 #include <libsc/com/encoder.h>
 #include <libsc/com/gyroscope.h>
+#include <libsc/com/joystick.h>
 #include <libsc/com/lcd.h>
 #include <libsc/com/lcd_console.h>
 #include <libsc/com/led.h>
 #include <libsc/com/light_sensor.h>
 #include <libsc/com/linear_ccd.h>
 #include <libsc/com/motor.h>
+#include <libsc/com/switch.h>
 #include <libsc/com/trs_d05.h>
 
 namespace linear_ccd
@@ -83,24 +85,24 @@ public:
 		m_leds[id].SetEnable(flag);
 	}
 
-	void StartCcdSample()
+	void StartCcdSample(const uint8_t id)
 	{
-		m_ccd.StartSample();
+		m_ccds[id].StartSample();
 	}
 
-	bool CcdSampleProcess()
+	bool CcdSampleProcess(const uint8_t id)
 	{
-		return m_ccd.SampleProcess();
+		return m_ccds[id].SampleProcess();
 	}
 
-	const std::bitset<libsc::LinearCcd::SENSOR_W>& GetCcdSample() const
+	const std::bitset<libsc::LinearCcd::SENSOR_W>& GetCcdSample(const uint8_t id) const
 	{
-		return m_ccd.GetData();
+		return m_ccds[id].GetData();
 	}
 
-	bool IsCcdReady() const
+	bool IsCcdReady(const uint8_t id) const
 	{
-		return m_ccd.IsImageReady();
+		return m_ccds[id].IsImageReady();
 	}
 
 	void UpdateEncoder()
@@ -139,6 +141,18 @@ public:
 		m_lcd_console.PrintString(str, color);
 	}
 
+	void LcdClear(const uint16_t)
+	{
+		m_lcd_console.Clear(false);
+		// Skip clearing the screen as it's too slow
+		//m_lcd.Clear(color);
+	}
+
+	void LcdSetRow(const uint8_t row)
+	{
+		m_lcd_console.SetCursorRow(row);
+	}
+
 	bool IsMotorForward() const;
 	bool IsMotorStop() const
 	{
@@ -158,17 +172,46 @@ public:
 	int16_t GetTurning() const;
 
 	/**
-	 * Return the state of all 4 buttons packed in 1 byte. If it's currently
-	 * down, the value will be 1, 0 otherwise
+	 * Return the state of all buttons. The bit is set if it's currently down
 	 *
 	 * @return
 	 */
-	uint8_t GetButtonState() const
+#ifdef LINEAR_CCD_2014
+	std::bitset<2> GetButtonState() const
 	{
-		uint8_t state = 0;
+		std::bitset<2> state = 0;
+		for (int i = 0; i < 2; ++i)
+		{
+			state[i] = m_buttons[i].IsDown();
+		}
+		return state;
+	}
+
+#else
+	std::bitset<4> GetButtonState() const
+	{
+		std::bitset<4> state = 0;
 		for (int i = 0; i < 4; ++i)
 		{
-			state |= ((m_buttons[i].IsDown() ? 1 : 0) << i);
+			state[i] = m_buttons[i].IsDown();
+		}
+		return state;
+	}
+
+#endif
+
+	/**
+	 * Return the state of all switches. The bit is set if it's currently in
+	 * the ON state
+	 *
+	 * @return
+	 */
+	std::bitset<5> GetSwitchState() const
+	{
+		std::bitset<5> state = 0;
+		for (int i = 0; i < 5; ++i)
+		{
+			state[i] = m_switches[i].IsOn();
 		}
 		return state;
 	}
@@ -183,6 +226,11 @@ public:
 		return m_gyro.GetAverageAngle();
 	}
 
+	libsc::Joystick::State GetJoystickState() const
+	{
+		return m_joystick.GetState();
+	}
+
 	int16_t GetEncoderCount() const
 	{
 		return m_encoder.GetCount();
@@ -191,17 +239,23 @@ public:
 private:
 	void SetMotorDirection(const bool is_forward);
 
-	libsc::Bluetooth m_bt;
+#ifdef LINEAR_CCD_2014
+	libsc::Button m_buttons[2];
+#else
 	libsc::Button m_buttons[4];
+#endif
 	libsc::Encoder m_encoder;
 	libsc::Gyroscope m_gyro;
+	libsc::Joystick m_joystick;
 	libsc::Lcd m_lcd;
 	libsc::LcdConsole m_lcd_console;
 	libsc::Led m_leds[4];
 	libsc::LightSensor m_light_sensors[2];
-	libsc::LinearCcd m_ccd;
+	libsc::LinearCcd m_ccds[1];
 	libsc::Motor m_motor;
+	libsc::Switch m_switches[5];
 	libsc::TrsD05 m_servo;
+	libsc::UartDevice m_bt;
 };
 
 }

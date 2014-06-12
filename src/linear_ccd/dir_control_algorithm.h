@@ -31,8 +31,18 @@ public:
 	explicit DirControlAlgorithm(Car *car);
 
 	void OnFinishWarmUp(Car *car);
-	void Control(const std::bitset<libsc::LinearCcd::SENSOR_W> &ccd_data);
+	int16_t Process(const std::bitset<libsc::LinearCcd::SENSOR_W> &ccd_data);
 	void SetMode(const Uint mode);
+
+	uint8_t GetCase() const
+	{
+		return m_case;
+	}
+
+	int GetMid() const
+	{
+		return m_prev_mid;
+	}
 
 private:
 	bool DetectSlope();
@@ -40,16 +50,24 @@ private:
 			const std::bitset<libsc::LinearCcd::SENSOR_W> &ccd_data);
 	void UpdatePid(const bool is_straight);
 
+	// All black or all white
+	void ProcessFill();
+	void ProcessGeneral(const std::bitset<libsc::LinearCcd::SENSOR_W> &ccd_data);
+
 	Car *m_car;
 	int16_t m_flat_gyro_angle;
 
 	bool all_white_smaple_flag;
 	bool all_black_smaple_flag;
 
-	int last_sample_error_pos;
+	int m_prev_mid;
+	int m_curr_mid;
 
 	libutil::PidController<int32_t, int32_t> m_servo_pid;
 	libutil::KalmanFilter m_gyro_filter;
+
+	uint8_t m_case;
+	int16_t m_turning;
 
 	uint8_t m_mode;
 };

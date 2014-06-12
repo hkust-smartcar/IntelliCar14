@@ -13,6 +13,7 @@
 #include <libutil/pid_controller.h>
 #include <libutil/pid_controller.tcc>
 
+#include "linear_ccd/config.h"
 #include "linear_ccd/car.h"
 #include "linear_ccd/linear_ccd_app.h"
 #include "linear_ccd/speed_control_1.h"
@@ -21,6 +22,7 @@ using namespace std;
 using libutil::Clock;
 
 #define MOTOR_MAX_PWM 6500
+#define ACCELERATE_DELAY 3
 
 namespace linear_ccd
 {
@@ -92,9 +94,12 @@ constexpr SpeedConstant CONSTANTS[] =
 		{235, 0, 26.8f, 0.0f, 10.0f},
 		{290, 0, 26.8f, 0.0f, 10.0f},
 		*/
-		{200, 0, 578.0f, 0.0f, 57.8f},
-		{220, 0, 578.0f, 0.0f, 57.8f},
-		{240, 0, 578.0f, 0.0f, 57.8f},
+		{210, 0, 578.0f, 0.0f, 57.8f},
+		{210, 0, 578.0f, 0.0f, 57.8f},
+		{210, 0, 578.0f, 0.0f, 57.8f},
+		{210, 0, 578.0f, 0.0f, 57.8f},
+		{210, 0, 578.0f, 0.0f, 57.8f},
+
 		{280, 0, 578.0f, 0.0f, 57.8f},
 
 		{120, 0, 578.0f, 0.0f, 57.8f},
@@ -179,9 +184,10 @@ constexpr SpeedConstant TURN_CONSTANTS[] =
 
 		//{160, 0, 578.0f, 0.0f, 57.8f},
 		{140, 0, 578.0f, 0.0f, 57.8f},
-		{140, 0, 578.0f, 0.0f, 57.8f},
-		{140, 0, 578.0f, 0.0f, 57.8f},
-		{140, 0, 578.0f, 0.0f, 57.8f},
+		{150, 0, 578.0f, 0.0f, 57.8f},
+		{160, 0, 578.0f, 0.0f, 57.8f},
+		{170, 0, 578.0f, 0.0f, 57.8f},
+		{180, 0, 578.0f, 0.0f, 57.8f},
 
 		{120, 0, 578.0f, 0.0f, 57.8f},
 		{140, 0, 578.0f, 0.0f, 57.8f},
@@ -237,7 +243,7 @@ constexpr SpeedConstant TURN_CONSTANTS[] =
 SpeedControl1::SpeedControl1()
 		: m_pid(CONSTANTS[0].encoder, CONSTANTS[0].kp, CONSTANTS[0].ki,
 					CONSTANTS[0].kd),
-		  m_mode(0),
+		  m_mode(0), m_straight_mode_delay(0),
 		  m_is_startup(true)
 {
 	m_pid.SetILimit(1500);
@@ -258,7 +264,7 @@ void SpeedControl1::Control(Car *car)
 #endif
 
 	int power;
-	if (abs(car->GetTurning()) <= 38)
+	if (abs(car->GetTurning()) <= Config::GetTurnThreshold())
 	{
 		UpdatePid(true);
 		power = m_pid.Calc(time, count) + CONSTANTS[m_mode].pwm;
@@ -306,10 +312,21 @@ void SpeedControl1::UpdatePid(const bool is_straight)
 {
 	if (is_straight)
 	{
-		m_pid.SetSetpoint(CONSTANTS[m_mode].encoder);
-		m_pid.SetKp(CONSTANTS[m_mode].kp);
-		m_pid.SetKi(CONSTANTS[m_mode].ki);
-		m_pid.SetKd(CONSTANTS[m_mode].kd);
+		if (m_straight_mode_delay == static_cast<uint8_t>(-1))
+		{
+			m_straight_mode_delay = ACCELERATE_DELAY;
+		}
+		else if (m_straight_mode_delay == 0)
+		{
+			m_pid.SetSetpoint(CONSTANTS[m_mode].encoder);
+			m_pid.SetKp(CONSTANTS[m_mode].kp);
+			m_pid.SetKi(CONSTANTS[m_mode].ki);
+			m_pid.SetKd(CONSTANTS[m_mode].kd);
+		}
+		else
+		{
+			--m_straight_mode_delay;
+		}
 	}
 	else
 	{
@@ -317,6 +334,7 @@ void SpeedControl1::UpdatePid(const bool is_straight)
 		m_pid.SetKp(TURN_CONSTANTS[m_mode].kp);
 		m_pid.SetKi(TURN_CONSTANTS[m_mode].ki);
 		m_pid.SetKd(TURN_CONSTANTS[m_mode].kd);
+		m_straight_mode_delay = static_cast<uint8_t>(-1);
 	}
 }
 

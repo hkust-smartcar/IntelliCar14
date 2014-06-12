@@ -44,6 +44,7 @@ private:
 
 	libutil::PidController<int32_t, int> m_pid;
 	uint8_t m_mode;
+	uint8_t m_straight_mode_delay;
 
 	bool m_is_startup;
 };

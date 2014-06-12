@@ -15,10 +15,12 @@
 #include "linear_ccd/debug.h"
 
 #include <libutil/kalman_filter.h>
+#include <libutil/misc.h>
 #include <libutil/pid_controller.h>
 #include <libutil/pid_controller.tcc>
-#include <libutil/misc.h>
+#include <libutil/string.h>
 
+#include "linear_ccd/config.h"
 #include "linear_ccd/car.h"
 #include "linear_ccd/dir_control_algorithm.h"
 
@@ -48,30 +50,29 @@ struct ServoConstant
 constexpr ServoConstant CONSTANTS[] =
 {
 		//{0.0f, 0.0f, 0.0f, 0, 0},
-		{2.8f, 0.0f, 1.3f, 58, 58},
+		{2.17f, 0.0f, 1.59f, 59, 59},
 		//
 		//{1.57f, 0.0f, 0.0f, 62, 62},
 		//{1.62f, 0.0f, 0.0f, 62, 62},
 		//{1.67f, 0.0f, 0.0f, 62, 62},
 
-		//{1.67f, 0.0f, 0.0f, 60, 60},
-		//{1.67f, 0.0f, 0.0f, 60, 60},
-		//{1.67f, 0.0f, 0.0f, 60, 60},
-		//{1.67f, 0.0f, 0.0f, 60, 60},
-		{3.05f, 0.0f, 0.69f, 59, 59},
-		{3.05f, 0.0f, 0.69f, 59, 59},
-		{3.05f, 0.0f, 0.69f, 59, 59},
-		{3.05f, 0.0f, 0.69f, 59, 59},
+		{1.67f, 0.0f, 1.49f, 59, 59},
+		{1.67f, 0.0f, 1.49f, 59, 59},
+		{1.67f, 0.0f, 1.49f, 59, 59},
+		{1.67f, 0.0f, 1.49f, 59, 59},
+		{1.67f, 0.0f, 1.49f, 59, 59},
+
+		{1.07f, 0.0f, 0.74f, 40, 40},
+		{1.07f, 0.0f, 0.74f, 40, 40},
+		{1.07f, 0.0f, 0.74f, 40, 40},
+		{1.07f, 0.0f, 0.74f, 40, 40},
+		{1.07f, 0.0f, 0.74f, 40, 40},
 
 		//{1.275f, 0.0f, 0.88f, 45, 45},
 		{1.55f, 0.0f, 0.5f, 60, 60},
 		{3.05f, 0.0f, 1.0f, 60, 60},
 		{0.9f, 0.0f, 1.0f, 60, 60},
 		//{1.55f, 0.0f, 0.0f, 60, 60},
-		{0.0f, 0.0f, 0.0f, 0, 0},
-		{0.0f, 0.0f, 0.0f, 0, 0},
-		{0.0f, 0.0f, 0.0f, 0, 0},
-		{0.0f, 0.0f, 0.0f, 0, 0},
 
 		// Successful trial
 		// Set 1
@@ -97,16 +98,37 @@ constexpr ServoConstant CONSTANTS[] =
 		//PWM[-4k, 7k]
 		//turn threshold 40
 		//{1.57f, 0.0f, 1.02f, 62, 62},
+
+		// Protection
+		{0.0f, 0.0f, 0.0f, 0, 0},
+		{0.0f, 0.0f, 0.0f, 0, 0},
+		{0.0f, 0.0f, 0.0f, 0, 0},
+		{0.0f, 0.0f, 0.0f, 0, 0},
+		{0.0f, 0.0f, 0.0f, 0, 0},
 };
 
 constexpr ServoConstant TURN_CONSTANTS[] =
 {
 		{2.8f, 0.0f, 1.3f, 58, 58},
 
-		{3.25f, 0.0f, 0.34f, 59, 59},
-		{3.25f, 0.0f, 0.34f, 59, 59},
-		{3.25f, 0.0f, 0.34f, 59, 59},
-		{3.25f, 0.0f, 0.34f, 59, 59},
+		{3.25f, 0.0f, 1.34f, 59, 59},
+		{3.25f, 0.0f, 1.34f, 59, 59},
+		{3.25f, 0.0f, 1.34f, 59, 59},
+		{3.25f, 0.0f, 1.34f, 59, 59},
+		{3.25f, 0.0f, 1.34f, 59, 59},
+
+		{0.0f, 0.0f, 0.0f, 0, 0},
+		{0.0f, 0.0f, 0.0f, 0, 0},
+		{0.0f, 0.0f, 0.0f, 0, 0},
+		{0.0f, 0.0f, 0.0f, 0, 0},
+		{0.0f, 0.0f, 0.0f, 0, 0},
+
+		// Protection
+		{0.0f, 0.0f, 0.0f, 0, 0},
+		{0.0f, 0.0f, 0.0f, 0, 0},
+		{0.0f, 0.0f, 0.0f, 0, 0},
+		{0.0f, 0.0f, 0.0f, 0, 0},
+		{0.0f, 0.0f, 0.0f, 0, 0},
 };
 
 }
@@ -118,7 +140,7 @@ DirControlAlgorithm::DirControlAlgorithm(Car *car)
 		  all_white_smaple_flag(false),
 		  all_black_smaple_flag(false),
 
-		  last_sample_error_pos(CCD_MID_POS),
+		  m_prev_mid(CCD_MID_POS),
 
 		  m_servo_pid(CCD_MID_POS, CONSTANTS[0].kp, CONSTANTS[0].ki,
 				  CONSTANTS[0].kd),
@@ -135,31 +157,104 @@ void DirControlAlgorithm::OnFinishWarmUp(Car *car)
 	m_servo_pid.Restart();
 }
 
-void DirControlAlgorithm::Control(
+int16_t DirControlAlgorithm::Process(
 		const bitset<libsc::LinearCcd::SENSOR_W> &ccd_data)
 {
+/*
 	if (DetectSlope())
 	{
 #ifdef DEBUG_PRINT_SLOPE
 		LOG_D("Slope (Angle: %f, Flat: %d)", m_car->GetGyroAngle(),
 				m_flat_gyro_angle);
 #endif
-		m_car->SetTurning(0);
-		return;
+		return 0;
 	}
+*/
+
+	m_case = 0;
+	m_curr_mid = 0;
+	m_turning = INT16_MIN;
 
 	ScanAllWhiteOrAllBlackSample(ccd_data);
+	if (all_black_smaple_flag || all_white_smaple_flag)
+	{
+		ProcessFill();
+	}
+	else
+	{
+		ProcessGeneral(ccd_data);
+	}
 
-	int16_t turning = 0;
-	bool is_turning_set = false;
+	//LOG_D("current_mid_error_pos: %d", current_mid_error_pos);
+
+#ifdef DEBUG_PRINT_SERVO_PID
+	m_servo_pid.Print("servo");
+#endif
+
+	if (m_turning == INT16_MIN)
+	{
+		if (m_turning <= Config::GetTurnThreshold())
+		{
+			UpdatePid(true);
+		}
+		else
+		{
+			UpdatePid(false);
+		}
+
+		// Opposite direction
+		m_turning = -m_servo_pid.Calc(m_curr_mid);
+	}
+
+	/*
+	if (current_mid_error_pos < 0)
+	{
+		__BREAKPOINT();
+	}
+	*/
+	m_prev_mid = m_curr_mid;
+	//current_edge_middle_distance = current_1st_right_edge - current_1st_left_edge;
+
+	return m_turning;
+}
+
+void DirControlAlgorithm::ProcessFill()
+{
+	/* ---------------------------------------- (no middle noise) Cross road*/
+	if (all_white_smaple_flag)
+	{
+		m_case = 50;
+		m_curr_mid = CCD_MID_POS;
+	}
+
+	/* |||||||||||||||||||||||||||||||||||||||| (all black) */
+	else // if (all_black_smaple_flag)
+	{
+		m_case = 60;
+		//current_mid_error_pos = ccd_mid_pos + current_dir_error;
+		m_curr_mid = m_prev_mid;
+		if (m_car->GetTurning() >= Config::GetTurnThreshold() + 5)
+		{
+			m_turning = 100;
+		}
+		else if (m_car->GetTurning() <= -Config::GetTurnThreshold() - 5)
+		{
+			m_turning = -100;
+		}
+	}
+}
+
+void DirControlAlgorithm::ProcessGeneral(
+		const bitset<libsc::LinearCcd::SENSOR_W> &ccd_data)
+{
 	bool detect_left_flag = false;
 	int current_1st_left_edge = VALID_PIXEL;
-	for (int i = libutil::Clamp<int>(0, last_sample_error_pos, VALID_PIXEL - 1);
-			i >= 0; --i)
+	for (int i = libutil::ClampVal<int>(0, m_prev_mid, libsc::LinearCcd::SENSOR_W);
+			i >= VALID_OFFSET; --i)
 	{ // scan from last_sample_error_pos to left edge
 		if (!ccd_data[i + VALID_OFFSET])
 		{
-			current_1st_left_edge = i;
+			current_1st_left_edge = i + VALID_OFFSET;
 			detect_left_flag = true;
 			break;
 		}
@@ -167,25 +262,22 @@ void DirControlAlgorithm::Control(
 
 	bool detect_right_flag = false;
 	int current_1st_right_edge = 0;
-	for (int i = libutil::Clamp<int>(0, last_sample_error_pos, VALID_PIXEL - 1);
+	for (int i = libutil::ClampVal<int>(0, m_prev_mid, libsc::LinearCcd::SENSOR_W);
 			i < VALID_PIXEL; ++i)
 	{  // scan from last_sample_error_pos to right edge
 		if (!ccd_data[i + VALID_OFFSET])
 		{
-			current_1st_right_edge = i;
+			current_1st_right_edge = i + VALID_OFFSET;
 			detect_right_flag = true;
 			break;
 		}
 	}
 
-	int if_case = 0;
-	int current_mid_error_pos = 0;
 	/* ||||--------------------------------|||| */
 	if (detect_left_flag && detect_right_flag)
 	{
-		if_case = 10;
-		current_mid_error_pos =
-				(current_1st_left_edge + current_1st_right_edge) / 2;
+		m_case = 10;
+		m_curr_mid = (current_1st_left_edge + current_1st_right_edge) / 2;
 
 #ifdef DEBUG_PRINT_EDGE
 		LOG_D("Edge: %d | %d", current_mid_error_pos - current_1st_left_edge,
@@ -208,14 +300,15 @@ void DirControlAlgorithm::Control(
 		if (current_1st_left_edge < CONSTANTS[m_mode].start_l / 2)
 		{
 			// Possibly crossroad
-			if_case = 20;
-			current_mid_error_pos = CCD_MID_POS;
+			m_case = 20;
+			//m_curr_mid = CCD_MID_POS;
+			m_curr_mid = current_1st_left_edge + CONSTANTS[m_mode].start_r;
+			m_turning = 0;
 		}
 		else
 		{
-			if_case = 21;
-			current_mid_error_pos = current_1st_left_edge
-					+ CONSTANTS[m_mode].start_r;
+			m_case = 21;
+			m_curr_mid = current_1st_left_edge + CONSTANTS[m_mode].start_r;
 		}
 	}
 
@@ -234,89 +327,31 @@ void DirControlAlgorithm::Control(
 		if (current_1st_right_edge < CONSTANTS[m_mode].start_r / 2)
 		{
 			// Possibly crossroad
-			if_case = 30;
-			current_mid_error_pos = CCD_MID_POS;
+			m_case = 30;
+			//m_curr_mid = CCD_MID_POS;
+			m_curr_mid = current_1st_right_edge - CONSTANTS[m_mode].start_l;
+			m_turning = 0;
 		}
 		else
 		{
-			if_case = 31;
-			current_mid_error_pos = current_1st_right_edge
-					- CONSTANTS[m_mode].start_l;
+			m_case = 31;
+			m_curr_mid = current_1st_right_edge - CONSTANTS[m_mode].start_l;
 			//LOG_D("current_1st_right_edge: %d", current_1st_right_edge);
 		}
 	}
 
 	else if (!detect_left_flag && !detect_right_flag)
 	{
-		if_case = 40;
-		current_mid_error_pos = CCD_MID_POS;
+		m_case = 40;
+		m_curr_mid = CCD_MID_POS;
 	}
-
-	/* ---------------------------------------- (no middle noise) Cross road*/
-	if (all_white_smaple_flag)
-	{
-		if_case = 50;
-		current_mid_error_pos = CCD_MID_POS;
-	}
-
-	/* |||||||||||||||||||||||||||||||||||||||| (all black) */
-	if (all_black_smaple_flag)
-	{
-		if_case = 60;
-		//current_mid_error_pos = ccd_mid_pos + current_dir_error;
-		current_mid_error_pos = last_sample_error_pos;
-		if (m_car->GetTurning() >= 45)
-		{
-			turning = 100;
-			is_turning_set = true;
-		}
-		else if (m_car->GetTurning() <= -45)
-		{
-			turning = -100;
-			is_turning_set = true;
-		}
-	}
-
-#ifdef DEBUG_PRINT_CASE
-	LOG_D("if_case :%d", if_case);
-#endif
-	//LOG_D("current_mid_error_pos: %d", current_mid_error_pos);
-
-#ifdef DEBUG_PRINT_SERVO_PID
-	m_servo_pid.Print("servo");
-#endif
-
-	// Opposite direction
-	if (!is_turning_set)
-	{
-		turning = -m_servo_pid.Calc(current_mid_error_pos);
-	}
-#ifdef DEBUG_PRINT_TURNING
-	LOG_D("turning :%d", turning);
-#endif
-
-	if (turning <= 38)
-	{
-		UpdatePid(true);
-	}
-	else
-	{
-		UpdatePid(false);
-	}
-	m_car->SetTurning(turning);
-
-	/*
-	if (current_mid_error_pos < 0)
-	{
-		__BREAKPOINT();
-	}
-	*/
-	last_sample_error_pos = current_mid_error_pos;
-	//current_edge_middle_distance = current_1st_right_edge - current_1st_left_edge;
 }
 
 bool DirControlAlgorithm::DetectSlope()
 {
+	// XXX
+	return false;
+
 	m_car->UpdateGyro();
 	const float filter = m_gyro_filter.Filter(m_car->GetGyroAngle());
 #ifdef DEBUG_PRINT_GYRO

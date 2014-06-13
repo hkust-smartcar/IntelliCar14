@@ -48,7 +48,7 @@ private:
 	}
 
 	LcdScreenState m_lcd_screen_state;
-	static constexpr int TURN_THRESHOLD = 40;
+	static constexpr int TURN_THRESHOLD = 36;
 
 	static Config *m_instance;
 };

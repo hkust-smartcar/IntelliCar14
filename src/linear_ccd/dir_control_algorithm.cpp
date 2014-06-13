@@ -26,8 +26,10 @@
 
 using namespace std;
 
-#define VALID_PIXEL (128 - 6)
-#define VALID_OFFSET 3
+//#define VALID_PIXEL (128 - 6)
+//#define VALID_OFFSET 3
+#define VALID_PIXEL 128
+#define VALID_OFFSET 0
 
 #define CCD_MID_POS (VALID_PIXEL / 2)
 
@@ -42,37 +44,36 @@ struct ServoConstant
 	float kp;
 	float ki;
 	float kd;
-	int start_l;
-	int start_r;
+	uint8_t edge;
 };
 
 // The first one is being used when the motor is stopped (manual mode)
 constexpr ServoConstant CONSTANTS[] =
 {
-		//{0.0f, 0.0f, 0.0f, 0, 0},
-		{2.17f, 0.0f, 1.59f, 59, 59},
+		//{0.0f, 0.0f, 0.0f, 0},
+		{1.67f, 0.0f, 1.49f, 50},
 		//
-		//{1.57f, 0.0f, 0.0f, 62, 62},
-		//{1.62f, 0.0f, 0.0f, 62, 62},
-		//{1.67f, 0.0f, 0.0f, 62, 62},
+		//{1.57f, 0.0f, 0.0f, 62},
+		//{1.62f, 0.0f, 0.0f, 62},
+		//{1.67f, 0.0f, 0.0f, 62},
 
-		{1.67f, 0.0f, 1.49f, 59, 59},
-		{1.67f, 0.0f, 1.49f, 59, 59},
-		{1.67f, 0.0f, 1.49f, 59, 59},
-		{1.67f, 0.0f, 1.49f, 59, 59},
-		{1.67f, 0.0f, 1.49f, 59, 59},
+		{2.27f, 0.0f, 1.49f, 35},
+		{2.27f, 0.0f, 1.49f, 35},
+		{2.27f, 0.0f, 1.49f, 35},
+		{2.27f, 0.0f, 1.49f, 35},
+		{2.27f, 0.0f, 1.49f, 35},
 
-		{1.07f, 0.0f, 0.74f, 40, 40},
-		{1.07f, 0.0f, 0.74f, 40, 40},
-		{1.07f, 0.0f, 0.74f, 40, 40},
-		{1.07f, 0.0f, 0.74f, 40, 40},
-		{1.07f, 0.0f, 0.74f, 40, 40},
+		{1.07f, 0.0f, 0.74f, 20},
+		{1.07f, 0.0f, 0.74f, 20},
+		{1.07f, 0.0f, 0.74f, 20},
+		{1.07f, 0.0f, 0.74f, 20},
+		{1.07f, 0.0f, 0.74f, 20},
 
-		//{1.275f, 0.0f, 0.88f, 45, 45},
-		{1.55f, 0.0f, 0.5f, 60, 60},
-		{3.05f, 0.0f, 1.0f, 60, 60},
-		{0.9f, 0.0f, 1.0f, 60, 60},
-		//{1.55f, 0.0f, 0.0f, 60, 60},
+		//{1.275f, 0.0f, 0.88f, 45},
+		{1.55f, 0.0f, 0.5f, 60},
+		{3.05f, 0.0f, 1.0f, 60},
+		{0.9f, 0.0f, 1.0f, 60},
+		//{1.55f, 0.0f, 0.0f, 60},
 
 		// Successful trial
 		// Set 1
@@ -100,35 +101,35 @@ constexpr ServoConstant CONSTANTS[] =
 		//{1.57f, 0.0f, 1.02f, 62, 62},
 
 		// Protection
-		{0.0f, 0.0f, 0.0f, 0, 0},
-		{0.0f, 0.0f, 0.0f, 0, 0},
-		{0.0f, 0.0f, 0.0f, 0, 0},
-		{0.0f, 0.0f, 0.0f, 0, 0},
-		{0.0f, 0.0f, 0.0f, 0, 0},
+		{0.0f, 0.0f, 0.0f, 0},
+		{0.0f, 0.0f, 0.0f, 0},
+		{0.0f, 0.0f, 0.0f, 0},
+		{0.0f, 0.0f, 0.0f, 0},
+		{0.0f, 0.0f, 0.0f, 0},
 };
 
 constexpr ServoConstant TURN_CONSTANTS[] =
 {
-		{2.8f, 0.0f, 1.3f, 58, 58},
+		{2.8f, 0.0f, 1.3f, 58},
 
-		{3.25f, 0.0f, 1.34f, 59, 59},
-		{3.25f, 0.0f, 1.34f, 59, 59},
-		{3.25f, 0.0f, 1.34f, 59, 59},
-		{3.25f, 0.0f, 1.34f, 59, 59},
-		{3.25f, 0.0f, 1.34f, 59, 59},
+		{3.25f, 0.0f, 1.34f, 35},
+		{3.25f, 0.0f, 1.34f, 35},
+		{3.25f, 0.0f, 1.34f, 35},
+		{3.25f, 0.0f, 1.34f, 35},
+		{3.25f, 0.0f, 1.34f, 35},
 
-		{0.0f, 0.0f, 0.0f, 0, 0},
-		{0.0f, 0.0f, 0.0f, 0, 0},
-		{0.0f, 0.0f, 0.0f, 0, 0},
-		{0.0f, 0.0f, 0.0f, 0, 0},
-		{0.0f, 0.0f, 0.0f, 0, 0},
+		{0.0f, 0.0f, 0.0f, 0},
+		{0.0f, 0.0f, 0.0f, 0},
+		{0.0f, 0.0f, 0.0f, 0},
+		{0.0f, 0.0f, 0.0f, 0},
+		{0.0f, 0.0f, 0.0f, 0},
 
 		// Protection
-		{0.0f, 0.0f, 0.0f, 0, 0},
-		{0.0f, 0.0f, 0.0f, 0, 0},
-		{0.0f, 0.0f, 0.0f, 0, 0},
-		{0.0f, 0.0f, 0.0f, 0, 0},
-		{0.0f, 0.0f, 0.0f, 0, 0},
+		{0.0f, 0.0f, 0.0f, 0},
+		{0.0f, 0.0f, 0.0f, 0},
+		{0.0f, 0.0f, 0.0f, 0},
+		{0.0f, 0.0f, 0.0f, 0},
+		{0.0f, 0.0f, 0.0f, 0},
 };
 
 }
@@ -248,9 +249,9 @@ void DirControlAlgorithm::ProcessGeneral(
 		const bitset<libsc::LinearCcd::SENSOR_W> &ccd_data)
 {
 	bool detect_left_flag = false;
-	int current_1st_left_edge = VALID_PIXEL;
-	for (int i = libutil::ClampVal<int>(0, m_prev_mid, libsc::LinearCcd::SENSOR_W);
-			i >= VALID_OFFSET; --i)
+	int current_1st_left_edge = 0;
+	for (int i = libutil::ClampVal<int>(VALID_OFFSET, m_prev_mid,
+			VALID_PIXEL + VALID_OFFSET); i >= VALID_OFFSET; --i)
 	{ // scan from last_sample_error_pos to left edge
 		if (!ccd_data[i + VALID_OFFSET])
 		{
@@ -262,8 +263,8 @@ void DirControlAlgorithm::ProcessGeneral(
 
 	bool detect_right_flag = false;
 	int current_1st_right_edge = 0;
-	for (int i = libutil::ClampVal<int>(0, m_prev_mid, libsc::LinearCcd::SENSOR_W);
-			i < VALID_PIXEL; ++i)
+	for (int i = libutil::ClampVal<int>(VALID_OFFSET, m_prev_mid,
+			VALID_PIXEL + VALID_OFFSET - 1); i < VALID_PIXEL + VALID_PIXEL; ++i)
 	{  // scan from last_sample_error_pos to right edge
 		if (!ccd_data[i + VALID_OFFSET])
 		{
@@ -280,8 +281,8 @@ void DirControlAlgorithm::ProcessGeneral(
 		m_curr_mid = (current_1st_left_edge + current_1st_right_edge) / 2;
 
 #ifdef DEBUG_PRINT_EDGE
-		LOG_D("Edge: %d | %d", current_mid_error_pos - current_1st_left_edge,
-				current_1st_right_edge - current_mid_error_pos);
+		LOG_D("Edge: %d | %d", m_curr_mid - current_1st_left_edge,
+				current_1st_right_edge - m_curr_mid);
 #endif
 	}
 
@@ -297,18 +298,24 @@ void DirControlAlgorithm::ProcessGeneral(
 			current_mid_error_pos = CCD_MID_POS;
 		}
 		*/
-		if (current_1st_left_edge < CONSTANTS[m_mode].start_l / 2)
+		const int track_w = CONSTANTS[m_mode].edge * 2;
+		const int detect_w = VALID_PIXEL - current_1st_left_edge;
+		const int imaginery_w = std::max<int>(track_w - detect_w, 0);
+		const int imaginery_right_edge = VALID_PIXEL + imaginery_w;
+		m_curr_mid = (current_1st_left_edge + imaginery_right_edge) / 2;
+
+		const int side_space = CCD_MID_POS - CONSTANTS[m_mode].edge;
+		if (current_1st_left_edge <= side_space)
 		{
 			// Possibly crossroad
 			m_case = 20;
 			//m_curr_mid = CCD_MID_POS;
-			m_curr_mid = current_1st_left_edge + CONSTANTS[m_mode].start_r;
 			m_turning = 0;
 		}
 		else
 		{
 			m_case = 21;
-			m_curr_mid = current_1st_left_edge + CONSTANTS[m_mode].start_r;
+			//m_curr_mid = current_1st_left_edge + CONSTANTS[m_mode].edge;
 		}
 	}
 
@@ -324,27 +331,36 @@ void DirControlAlgorithm::ProcessGeneral(
 			current_mid_error_pos = CCD_MID_POS;
 		}
 		*/
-		if (current_1st_right_edge < CONSTANTS[m_mode].start_r / 2)
+		const int track_w = CONSTANTS[m_mode].edge * 2;
+		const int detect_w = current_1st_right_edge;
+		const int imaginery_w = std::max<int>(track_w - detect_w, 0);
+		const int imaginery_left_edge = -imaginery_w;
+		m_curr_mid = (imaginery_left_edge + current_1st_right_edge) / 2;
+
+		const int side_space = CCD_MID_POS - CONSTANTS[m_mode].edge;
+		if (current_1st_right_edge >= CCD_MID_POS + CONSTANTS[m_mode].edge)
 		{
 			// Possibly crossroad
 			m_case = 30;
 			//m_curr_mid = CCD_MID_POS;
-			m_curr_mid = current_1st_right_edge - CONSTANTS[m_mode].start_l;
+			//m_curr_mid = current_1st_right_edge - CONSTANTS[m_mode].edge;
 			m_turning = 0;
 		}
 		else
 		{
 			m_case = 31;
-			m_curr_mid = current_1st_right_edge - CONSTANTS[m_mode].start_l;
+			//m_curr_mid = current_1st_right_edge - CONSTANTS[m_mode].edge;
 			//LOG_D("current_1st_right_edge: %d", current_1st_right_edge);
 		}
 	}
 
+	/*
 	else if (!detect_left_flag && !detect_right_flag)
 	{
 		m_case = 40;
 		m_curr_mid = CCD_MID_POS;
 	}
+	*/
 }
 
 bool DirControlAlgorithm::DetectSlope()

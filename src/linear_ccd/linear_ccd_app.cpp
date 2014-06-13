@@ -35,9 +35,11 @@ using namespace std;
 using libutil::Clock;
 
 #define LED_FREQ 250
-#define SERVO_FREQ 15
+#define SERVO_FREQ 9
 #define SPEED_CTRL_FREQ 19
 #define JOYSTICK_FREQ 25
+
+#define EMERGENCY_STOP_DELAY 3
 
 namespace linear_ccd
 {
@@ -46,7 +48,8 @@ LinearCcdApp *LinearCcdApp::m_instance = nullptr;
 
 LinearCcdApp::LinearCcdApp()
 		: m_dir_control({DirControlAlgorithm(&m_car), DirControlAlgorithm(&m_car)}),
-		  m_is_stop(false), m_mode(0), m_is_manual_interruptted(false)
+		  m_emergency_stop_delay(EMERGENCY_STOP_DELAY), m_is_stop(false),
+		  m_mode(0), m_is_manual_interruptted(false)
 {
 	m_instance = this;
 }
@@ -104,7 +107,7 @@ void LinearCcdApp::InitialStage()
 #ifdef LINEAR_CCD_2014
 	dac_init(DAC0);
 	//dac_out(DAC0, 0x520); 21freq
-	dac_out(DAC0, 0x440);
+	dac_out(DAC0, 0x390);
 	dac_init(DAC1);
 	dac_out(DAC1, 0x420);
 
@@ -469,8 +472,15 @@ void LinearCcdApp::DetectEmergencyStop()
 	const int16_t count = m_car.GetEncoderCount();
 	if (!is_startup && abs(count) < 30)
 	{
-		// Emergency stop
-		m_is_stop = true;
+		if (--m_emergency_stop_delay <= 0)
+		{
+			// Emergency stop
+			m_is_stop = true;
+		}
+	}
+	else
+	{
+		m_emergency_stop_delay = EMERGENCY_STOP_DELAY;
 	}
 }
 

@@ -100,6 +100,8 @@ private:
 
 	DirControlAlgorithm m_dir_control[2];
 	SpeedControl1 m_speed_control;
+
+	int8_t m_emergency_stop_delay;
 	bool m_is_stop;
 
 	uint8_t m_mode;

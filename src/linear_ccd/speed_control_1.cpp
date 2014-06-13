@@ -22,7 +22,7 @@ using namespace std;
 using libutil::Clock;
 
 #define MOTOR_MAX_PWM 6500
-#define ACCELERATE_DELAY 3
+#define ACCELERATE_DELAY 7
 
 namespace linear_ccd
 {
@@ -94,11 +94,11 @@ constexpr SpeedConstant CONSTANTS[] =
 		{235, 0, 26.8f, 0.0f, 10.0f},
 		{290, 0, 26.8f, 0.0f, 10.0f},
 		*/
-		{210, 0, 578.0f, 0.0f, 57.8f},
-		{210, 0, 578.0f, 0.0f, 57.8f},
-		{210, 0, 578.0f, 0.0f, 57.8f},
-		{210, 0, 578.0f, 0.0f, 57.8f},
-		{210, 0, 578.0f, 0.0f, 57.8f},
+		{240, 0, 578.0f, 0.0f, 57.8f},
+		{240, 0, 578.0f, 0.0f, 57.8f},
+		{240, 0, 578.0f, 0.0f, 57.8f},
+		{240, 0, 578.0f, 0.0f, 57.8f},
+		{240, 0, 578.0f, 0.0f, 57.8f},
 
 		{280, 0, 578.0f, 0.0f, 57.8f},
 
@@ -183,11 +183,11 @@ constexpr SpeedConstant TURN_CONSTANTS[] =
 		//{250, 0, 106.5f, 0.0f, 27.5f},
 
 		//{160, 0, 578.0f, 0.0f, 57.8f},
-		{140, 0, 578.0f, 0.0f, 57.8f},
-		{150, 0, 578.0f, 0.0f, 57.8f},
-		{160, 0, 578.0f, 0.0f, 57.8f},
-		{170, 0, 578.0f, 0.0f, 57.8f},
-		{180, 0, 578.0f, 0.0f, 57.8f},
+		{140, 0, 578.0f, 0.0f, 47.8f},
+		{150, 0, 578.0f, 0.0f, 47.8f},
+		{160, 0, 578.0f, 0.0f, 47.8f},
+		{170, 0, 578.0f, 0.0f, 47.8f},
+		{180, 0, 578.0f, 0.0f, 47.8f},
 
 		{120, 0, 578.0f, 0.0f, 57.8f},
 		{140, 0, 578.0f, 0.0f, 57.8f},
@@ -282,8 +282,8 @@ void SpeedControl1::Control(Car *car)
 	if (m_is_startup && time < 1000 + LinearCcdApp::INITIAL_DELAY)
 	{
 		const int clamp_power = car->GetMotorPower()
-				+ libutil::Clamp<int>(-350, power - car->GetMotorPower(),
-						350);
+				+ libutil::Clamp<int>(-300, power - car->GetMotorPower(),
+						300);
 		car->SetMotorPower(clamp_power);
 	}
 	else
@@ -293,11 +293,11 @@ void SpeedControl1::Control(Car *car)
 			m_is_startup = false;
 			m_pid.Restart();
 		}
-		if (abs(power - car->GetMotorPower()) > 1800)
+		if (abs(power - car->GetMotorPower()) > 1500)
 		{
-			// Max 2500 diff in one step
-			power = libutil::Clamp<int>(car->GetMotorPower() - 1800, power,
-					car->GetMotorPower() + 1800);
+			// Max 1500 diff in one step
+			power = libutil::Clamp<int>(car->GetMotorPower() - 1500, power,
+					car->GetMotorPower() + 1500);
 		}
 		car->SetMotorPower(libutil::Clamp<int>(-MOTOR_MAX_PWM, power, MOTOR_MAX_PWM));
 	}

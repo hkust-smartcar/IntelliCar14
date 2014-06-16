@@ -48,10 +48,10 @@ private:
 	Car m_car;
 
 	static MagneticApp *m_instance;
-	void SpeedControl();
 	void InitAll();
 	void CaluServoPercentage();
-	void SpeedControlPass();
+	void DirectionControl();
+
 };
 
 }

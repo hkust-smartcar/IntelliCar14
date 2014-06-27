@@ -37,13 +37,7 @@ public:
 
 	static int FwriteHandler(int, char *ptr, int len);
 private:
-	__ISR static void Pit0Handler();
-	__ISR static void Pit1Handler();
-	__ISR static void Pit2Handler();
-	__ISR static void Pit3Handler();
-
-
-
+	__ISR void ServoFTMHandler();
 	static void GetSensorValue();
 	Car m_car;
 
@@ -51,6 +45,7 @@ private:
 	void InitAll();
 	void CaluServoPercentage();
 	void DirectionControl();
+	void SpdCtrlpass();
 
 };
 

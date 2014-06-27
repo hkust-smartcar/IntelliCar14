@@ -10,6 +10,8 @@
 #define MAGNETIC_CAR_H_
 
 #include <libsc/com/futaba_s3010.h>
+#include <libsc/com/lcd.h>
+#include <libsc/com/lcd_console.h>
 #include <libsc/com/led.h>
 #include <libsc/com/motor.h>
 #include <libsc/com/uart_device.h>
@@ -43,6 +45,8 @@ public:
 	}
 
 	void SetMotorDirection(const bool is_forward);
+	void SetMotorLeftDirection(const bool is_forward);
+	void SetMotorRightDirection(const bool is_forward);
 	void SetMotorPowerLeft(const uint16_t power)
 	{
 		m_motor[0].SetPower(power);
@@ -129,9 +133,34 @@ public:
 	}
 
 
+	void LcdDrawGrayscalePixelBuffer(const uint8_t x, const uint8_t y,
+			const uint8_t w, const uint8_t h, const uint8_t *pixel)
+	{
+		m_lcd.DrawGrayscalePixelBuffer(x, y, w, h, pixel);
+	}
+
+	void LcdPrintString(const char *str, const uint16_t color)
+	{
+		m_lcd_console.PrintString(str, color);
+	}
+
+	void LcdClear(const uint16_t)
+	{
+		m_lcd_console.Clear(false);
+		// Skip clearing the screen as it's too slow
+		//m_lcd.Clear(color);
+	}
+
+	void LcdSetRow(const uint8_t row)
+	{
+		m_lcd_console.SetCursorRow(row);
+	}
+
 private:
 	libsc::Encoder m_encoder[2];
 	libsc::FutabaS3010 m_servo;
+	libsc::Lcd m_lcd;
+	libsc::LcdConsole m_lcd_console;
 	libsc::Led m_leds[4];
 	libsc::Motor m_motor[2];
 	libsc::UartDevice m_uart;

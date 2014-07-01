@@ -49,12 +49,12 @@ public:
 	void SetMotorRightDirection(const bool is_forward);
 	void SetMotorPowerLeft(const uint16_t power)
 	{
-		m_motor[0].SetPower(power);
+		m_motor[1].SetPower(power);
 	}
 
 	void SetMotorPowerRight(const uint16_t power)
 	{
-		m_motor[1].SetPower(power);
+		m_motor[0].SetPower(power);
 	}
 
 	void UpdateEncoder()

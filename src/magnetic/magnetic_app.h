@@ -22,7 +22,7 @@
 #include <libutil/pid_controller.h>
 #include <libutil/pid_controller.tcc>
 #include"libutil/clock.h"
-
+#include<libutil/kalman_filter.h>
 
 namespace magnetic
 {
@@ -46,6 +46,12 @@ private:
 	void CaluServoPercentage();
 	void DirectionControl();
 	void SpdCtrlpass();
+	void StpOffsetGet();
+
+	libutil::KalmanFilter m_MagneticSenlx_filter;
+	libutil::KalmanFilter m_MagneticSenly_filter;
+	libutil::KalmanFilter m_MagneticSenrx_filter;
+	libutil::KalmanFilter m_MagneticSenry_filter;
 
 };
 

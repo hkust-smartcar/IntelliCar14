@@ -10,20 +10,22 @@
 #define LINEAR_CCD_CAR_H_
 
 #include <bitset>
+#include <cstdint>
 
-#include <libsc/com/bluetooth.h>
-#include <libsc/com/button.h>
+#include <libsc/k60/button.h>
 #include <libsc/com/encoder.h>
-#include <libsc/com/gyroscope.h>
-#include <libsc/com/joystick.h>
+#include <libsc/k60/joystick.h>
 #include <libsc/com/lcd.h>
 #include <libsc/com/lcd_console.h>
-#include <libsc/com/led.h>
-#include <libsc/com/light_sensor.h>
-#include <libsc/com/linear_ccd.h>
+#include <libsc/k60/led.h>
+#include <libsc/k60/light_sensor.h>
+#include <libsc/k60/linear_ccd.h>
 #include <libsc/com/motor.h>
-#include <libsc/com/switch.h>
+#include <libsc/com/mpu6050.h>
+#include <libsc/k60/simple_buzzer.h>
+#include <libsc/k60/switch.h>
 #include <libsc/com/trs_d05.h>
+#include <libsc/k60/uart_device.h>
 
 namespace linear_ccd
 {
@@ -85,9 +87,20 @@ public:
 		m_leds[id].SetEnable(flag);
 	}
 
+	void StartCcdSample()
+	{
+		m_ccds[0].StartSample();
+		m_ccds[1].StartSample();
+	}
+
 	void StartCcdSample(const uint8_t id)
 	{
 		m_ccds[id].StartSample();
+	}
+
+	bool CcdSampleProcess()
+	{
+		return m_ccds[0].SampleProcess() && m_ccds[1].SampleProcess();
 	}
 
 	bool CcdSampleProcess(const uint8_t id)
@@ -95,9 +108,15 @@ public:
 		return m_ccds[id].SampleProcess();
 	}
 
-	const std::bitset<libsc::LinearCcd::SENSOR_W>& GetCcdSample(const uint8_t id) const
+	const std::bitset<libsc::k60::LinearCcd::SENSOR_W>& GetCcdSample(
+			const uint8_t id) const
 	{
 		return m_ccds[id].GetData();
+	}
+
+	bool IsCcdReady() const
+	{
+		return m_ccds[0].IsImageReady() && m_ccds[1].IsImageReady();
 	}
 
 	bool IsCcdReady(const uint8_t id) const
@@ -151,6 +170,11 @@ public:
 	void LcdSetRow(const uint8_t row)
 	{
 		m_lcd_console.SetCursorRow(row);
+	}
+
+	void SetBuzzerBeep(const bool is_beep)
+	{
+		m_buzzer.SetBeep(is_beep);
 	}
 
 	bool IsMotorForward() const;
@@ -223,10 +247,10 @@ public:
 
 	float GetGyroAngle() const
 	{
-		return m_gyro.GetAverageAngle();
+		return m_gyro.GetAngle()[0];
 	}
 
-	libsc::Joystick::State GetJoystickState() const
+	libsc::k60::Joystick::State GetJoystickState() const
 	{
 		return m_joystick.GetState();
 	}
@@ -240,22 +264,23 @@ private:
 	void SetMotorDirection(const bool is_forward);
 
 #ifdef LINEAR_CCD_2014
-	libsc::Button m_buttons[2];
+	libsc::k60::Button m_buttons[2];
 #else
-	libsc::Button m_buttons[4];
+	libsc::k60::Button m_buttons[4];
 #endif
 	libsc::Encoder m_encoder;
-	libsc::Gyroscope m_gyro;
-	libsc::Joystick m_joystick;
+	libsc::Mpu6050 m_gyro;
+	libsc::k60::Joystick m_joystick;
 	libsc::Lcd m_lcd;
 	libsc::LcdConsole m_lcd_console;
-	libsc::Led m_leds[4];
-	libsc::LightSensor m_light_sensors[2];
-	libsc::LinearCcd m_ccds[1];
+	libsc::k60::Led m_leds[4];
+	libsc::k60::LightSensor m_light_sensors[2];
+	libsc::k60::LinearCcd m_ccds[2];
 	libsc::Motor m_motor;
-	libsc::Switch m_switches[5];
+	libsc::k60::SimpleBuzzer m_buzzer;
+	libsc::k60::Switch m_switches[5];
 	libsc::TrsD05 m_servo;
-	libsc::UartDevice m_bt;
+	libsc::k60::UartDevice m_bt;
 };
 
 }

@@ -11,6 +11,8 @@
 
 #include <mini_common.h>
 
+#include "linear_ccd/turn_hint.h"
+
 namespace linear_ccd
 {
 
@@ -27,9 +29,10 @@ public:
 	virtual ~SpeedControlStrategy()
 	{}
 
-	virtual void OnFinishWarmUp(Car *car) = 0;
-	virtual void Control(Car *car) = 0;
+	virtual void OnFinishWarmUp() = 0;
+	virtual void Control() = 0;
 	virtual void SetMode(const Uint mode) = 0;
+	virtual void SetTurnHint(const TurnHint hint) = 0;
 };
 
 }

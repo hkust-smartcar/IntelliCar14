@@ -20,18 +20,20 @@
 #include <libutil/pid_controller.tcc>
 #include <libutil/string.h>
 
+#include "linear_ccd/beep_manager.h"
 #include "linear_ccd/config.h"
 #include "linear_ccd/car.h"
 #include "linear_ccd/dir_control_algorithm.h"
 
 using namespace std;
+using namespace libsc::k60;
 
 //#define VALID_PIXEL (128 - 6)
 //#define VALID_OFFSET 3
-#define VALID_PIXEL 128
-#define VALID_OFFSET 0
+#define VALID_PIXEL Config::GetCcdValidPixel()
+#define VALID_OFFSET Config::GetCcdValidPixelOffset()
 
-#define CCD_MID_POS (VALID_PIXEL / 2)
+#define CCD_MID_POS 64
 
 namespace linear_ccd
 {
@@ -51,24 +53,35 @@ struct ServoConstant
 constexpr ServoConstant CONSTANTS[] =
 {
 		//{0.0f, 0.0f, 0.0f, 0},
-		{1.67f, 0.0f, 1.49f, 50},
+		{8.57f, 0.0f, 0.12f, 48},
 		//
 		//{1.57f, 0.0f, 0.0f, 62},
 		//{1.62f, 0.0f, 0.0f, 62},
 		//{1.67f, 0.0f, 0.0f, 62},
 
-		{2.27f, 0.0f, 1.49f, 35},
-		{2.27f, 0.0f, 1.49f, 35},
-		{2.27f, 0.0f, 1.49f, 35},
-		{2.27f, 0.0f, 1.49f, 35},
-		{2.27f, 0.0f, 1.49f, 35},
+		// Down
+		{8.57f, 0.0f, 0.12f, 48},
+		{8.57f, 0.0f, 0.14f, 48},
+		{8.57f, 0.0f, 0.16f, 48},
+		{8.57f, 0.0f, 0.18f, 48},
+		{8.57f, 0.0f, 0.20f, 48},
+
+		// Up
+		{0.0f, 0.0f, 0.0f, 0},
+		{0.0f, 0.0f, 0.0f, 0},
+		{0.0f, 0.0f, 0.0f, 0},
+		{0.0f, 0.0f, 0.0f, 0},
+		{0.0f, 0.0f, 0.0f, 0},
+
+		{3.27f, 0.0f, 0.45f, 36},
+		{3.27f, 0.0f, 0.45f, 36},
+		{3.27f, 0.0f, 0.45f, 36},
+		{3.27f, 0.0f, 0.45f, 36},
+		{3.27f, 0.0f, 0.45f, 36},
 
 		{1.07f, 0.0f, 0.74f, 20},
-		{1.07f, 0.0f, 0.74f, 20},
-		{1.07f, 0.0f, 0.74f, 20},
-		{1.07f, 0.0f, 0.74f, 20},
-		{1.07f, 0.0f, 0.74f, 20},
 
+		// Old
 		//{1.275f, 0.0f, 0.88f, 45},
 		{1.55f, 0.0f, 0.5f, 60},
 		{3.05f, 0.0f, 1.0f, 60},
@@ -79,26 +92,47 @@ constexpr ServoConstant CONSTANTS[] =
 		// Set 1
 		//PWM[0, 7k]
 		//turn threshold 35
-		//{1.08f, 0.0f, 0.98f, 65, 65}, // Average
-		//{1.00f, 0.0f, 0.90f, 65, 65}, // Good
-		//{0.98f, 0.0f, 0.88f, 65, 65}, // Good
-		//{0.80f, 0.0f, 0.78f, 65, 65}, // Worst
+		{1.08f, 0.0f, 0.98f, 65}, // Average
+		{1.00f, 0.0f, 0.90f, 65}, // Good
+		{0.98f, 0.0f, 0.88f, 65}, // Good
+		{0.80f, 0.0f, 0.78f, 65}, // Worst
 
 		// Set 2
 		//PWM[0, 7k]
 		//turn threshold 35
-		//{1.2f, 0.0f, 0.0f, 62, 62}, // Good
-		//{1.44f, 0.0f, 0.0f, 62, 62}, // Acceptable
+		{1.2f, 0.0f, 0.0f, 62}, // Good
+		{1.44f, 0.0f, 0.0f, 62}, // Acceptable
 
 		// Set 3
 		//PWM[-4k, 7k]
 		//turn threshold 35
-		//{1.57f, 0.0f, 1.02f, 62, 62}, // V. Good
+		{1.57f, 0.0f, 1.02f, 62}, // V. Good
 
 		// Set 4
 		//PWM[-4k, 7k]
 		//turn threshold 40
-		//{1.57f, 0.0f, 1.02f, 62, 62},
+		{1.57f, 0.0f, 1.02f, 62},
+
+		// Set 5
+		//Before fixing tire
+		{2.27f, 0.0f, 1.49f, 35},
+
+		// Set 6
+		// Down
+		{1.77f, 0.0f, 1.32f, 49},
+		// Up
+		{1.47f, 0.0f, 1.19f, 23},
+
+		// Set 7
+		{2.47f, 0.0f, 1.32f, 49},
+
+		// Set 8
+		// Down
+		{8.57f, 0.0f, 0.29f, 35},
+		{8.57f, 0.0f, 0.32f, 35},
+		{8.57f, 0.0f, 0.35f, 35},
+		{8.57f, 0.0f, 0.38f, 35},
+		{8.57f, 0.0f, 0.41f, 35},
 
 		// Protection
 		{0.0f, 0.0f, 0.0f, 0},
@@ -110,19 +144,23 @@ constexpr ServoConstant CONSTANTS[] =
 
 constexpr ServoConstant TURN_CONSTANTS[] =
 {
-		{2.8f, 0.0f, 1.3f, 58},
+		{11.87f, 0.0f, 0.0f, 48},
 
-		{3.25f, 0.0f, 1.34f, 35},
-		{3.25f, 0.0f, 1.34f, 35},
-		{3.25f, 0.0f, 1.34f, 35},
-		{3.25f, 0.0f, 1.34f, 35},
-		{3.25f, 0.0f, 1.34f, 35},
+		{11.87f, 0.0f, 0.0f, 48},
+		{11.87f, 0.0f, 0.0f, 48},
+		{11.87f, 0.0f, 0.0f, 48},
+		{11.87f, 0.0f, 0.0f, 48},
+		{11.87f, 0.0f, 0.0f, 48},
 
 		{0.0f, 0.0f, 0.0f, 0},
 		{0.0f, 0.0f, 0.0f, 0},
 		{0.0f, 0.0f, 0.0f, 0},
 		{0.0f, 0.0f, 0.0f, 0},
 		{0.0f, 0.0f, 0.0f, 0},
+
+		// Set 5
+		//Before fixing tire
+		{3.25f, 0.0f, 1.34f, 35},
 
 		// Protection
 		{0.0f, 0.0f, 0.0f, 0},
@@ -132,34 +170,76 @@ constexpr ServoConstant TURN_CONSTANTS[] =
 		{0.0f, 0.0f, 0.0f, 0},
 };
 
+#define PRE_TURN_CONSTANTS TURN_CONSTANTS
+/*
+constexpr ServoConstant PRE_TURN_CONSTANTS[] =
+{
+		// Down
+		{3.27f, 0.0f, 0.15f, 35},
+		{3.27f, 0.0f, 0.15f, 35},
+		{3.27f, 0.0f, 0.15f, 35},
+		{3.27f, 0.0f, 0.15f, 35},
+		{3.27f, 0.0f, 0.15f, 35},
+
+		// Up
+		{0.0f, 0.0f, 0.0f, 0},
+		{0.0f, 0.0f, 0.0f, 0},
+		{0.0f, 0.0f, 0.0f, 0},
+		{0.0f, 0.0f, 0.0f, 0},
+		{0.0f, 0.0f, 0.0f, 0},
+
+		{3.27f, 0.0f, 0.45f, 36},
+		{3.27f, 0.0f, 0.45f, 36},
+		{3.27f, 0.0f, 0.45f, 36},
+		{3.27f, 0.0f, 0.45f, 36},
+		{3.27f, 0.0f, 0.45f, 36},
+
+		// Protection
+		{0.0f, 0.0f, 0.0f, 0},
+		{0.0f, 0.0f, 0.0f, 0},
+		{0.0f, 0.0f, 0.0f, 0},
+		{0.0f, 0.0f, 0.0f, 0},
+		{0.0f, 0.0f, 0.0f, 0},
+};
+*/
+
 }
 
 DirControlAlgorithm::DirControlAlgorithm(Car *car)
 		: m_car(car),
 		  m_flat_gyro_angle(0),
 
-		  all_white_smaple_flag(false),
-		  all_black_smaple_flag(false),
+		  m_is_all_black(false),
+		  m_is_all_white(false),
+
+		  m_curr_left_edge(Config::GetCcdValidPixelOffset()),
+		  m_curr_right_edge(Config::GetCcdValidPixelOffset()
+				  + Config::GetCcdValidPixel()),
 
 		  m_prev_mid(CCD_MID_POS),
+		  m_curr_mid(CCD_MID_POS),
 
 		  m_servo_pid(CCD_MID_POS, CONSTANTS[0].kp, CONSTANTS[0].ki,
 				  CONSTANTS[0].kd),
-		  m_gyro_filter(0, 0, 0, 0), // will be init later
+		  m_mid_filter(0.0000005f, 0.000001f, 64, 1),
+		  //m_gyro_filter(0, 0, 0, 0), // will be init later
 
-		  m_mode(0)
+		  m_case(0),
+		  m_turning(0),
+
+		  m_mode(0),
+		  m_is_explicit_set_turn_hint(false)
 {}
 
 void DirControlAlgorithm::OnFinishWarmUp(Car *car)
 {
-	m_gyro_filter = libutil::KalmanFilter(0.005f, 0.05f, car->GetGyroAngle(),
-			1.0f);
+	//m_gyro_filter = libutil::KalmanFilter(0.005f, 0.05f, car->GetGyroAngle(),
+	//		1.0f);
 	m_flat_gyro_angle = static_cast<int16_t>(car->GetGyroAngle());
 	m_servo_pid.Restart();
 }
 
-int16_t DirControlAlgorithm::Process(
-		const bitset<libsc::LinearCcd::SENSOR_W> &ccd_data)
+int16_t DirControlAlgorithm::Process(const bitset<LinearCcd::SENSOR_W> &ccd_data)
 {
 /*
 	if (DetectSlope())
@@ -177,7 +257,7 @@ int16_t DirControlAlgorithm::Process(
 	m_turning = INT16_MIN;
 
 	ScanAllWhiteOrAllBlackSample(ccd_data);
-	if (all_black_smaple_flag || all_white_smaple_flag)
+	if (m_is_all_black || m_is_all_white)
 	{
 		ProcessFill();
 	}
@@ -194,18 +274,23 @@ int16_t DirControlAlgorithm::Process(
 
 	if (m_turning == INT16_MIN)
 	{
-		if (m_turning <= Config::GetTurnThreshold())
+		if (!m_is_explicit_set_turn_hint)
 		{
-			UpdatePid(true);
-		}
-		else
-		{
-			UpdatePid(false);
+			if (m_turning <= Config::GetTurnThreshold())
+			{
+				SetTurnHint(TurnHint::STRAIGHT);
+			}
+			else
+			{
+				SetTurnHint(TurnHint::TURN);
+			}
 		}
 
+		//m_curr_mid = m_mid_filter.Filter(m_curr_mid);
 		// Opposite direction
 		m_turning = -m_servo_pid.Calc(m_curr_mid);
 	}
+	m_is_explicit_set_turn_hint = false;
 
 	/*
 	if (current_mid_error_pos < 0)
@@ -221,11 +306,14 @@ int16_t DirControlAlgorithm::Process(
 
 void DirControlAlgorithm::ProcessFill()
 {
+	m_curr_left_edge = -1;
+	m_curr_right_edge = -1;
 	/* ---------------------------------------- (no middle noise) Cross road*/
-	if (all_white_smaple_flag)
+	if (m_is_all_white)
 	{
 		m_case = 50;
-		m_curr_mid = CCD_MID_POS;
+		//m_curr_mid = CCD_MID_POS;
+		m_curr_mid = m_prev_mid;
 	}
 
 	/* |||||||||||||||||||||||||||||||||||||||| (all black) */
@@ -246,29 +334,29 @@ void DirControlAlgorithm::ProcessFill()
 }
 
 void DirControlAlgorithm::ProcessGeneral(
-		const bitset<libsc::LinearCcd::SENSOR_W> &ccd_data)
+		const bitset<LinearCcd::SENSOR_W> &ccd_data)
 {
 	bool detect_left_flag = false;
-	int current_1st_left_edge = 0;
+	m_curr_left_edge = -1;
 	for (int i = libutil::ClampVal<int>(VALID_OFFSET, m_prev_mid,
-			VALID_PIXEL + VALID_OFFSET); i >= VALID_OFFSET; --i)
+			VALID_PIXEL + VALID_OFFSET - 1); i >= VALID_OFFSET; --i)
 	{ // scan from last_sample_error_pos to left edge
-		if (!ccd_data[i + VALID_OFFSET])
+		if (!ccd_data[i])
 		{
-			current_1st_left_edge = i + VALID_OFFSET;
+			m_curr_left_edge = i;
 			detect_left_flag = true;
 			break;
 		}
 	}
 
 	bool detect_right_flag = false;
-	int current_1st_right_edge = 0;
+	m_curr_right_edge = -1;
 	for (int i = libutil::ClampVal<int>(VALID_OFFSET, m_prev_mid,
-			VALID_PIXEL + VALID_OFFSET - 1); i < VALID_PIXEL + VALID_PIXEL; ++i)
+			VALID_PIXEL + VALID_OFFSET - 1); i < VALID_PIXEL + VALID_OFFSET; ++i)
 	{  // scan from last_sample_error_pos to right edge
-		if (!ccd_data[i + VALID_OFFSET])
+		if (!ccd_data[i])
 		{
-			current_1st_right_edge = i + VALID_OFFSET;
+			m_curr_right_edge = i;
 			detect_right_flag = true;
 			break;
 		}
@@ -278,12 +366,7 @@ void DirControlAlgorithm::ProcessGeneral(
 	if (detect_left_flag && detect_right_flag)
 	{
 		m_case = 10;
-		m_curr_mid = (current_1st_left_edge + current_1st_right_edge) / 2;
-
-#ifdef DEBUG_PRINT_EDGE
-		LOG_D("Edge: %d | %d", m_curr_mid - current_1st_left_edge,
-				current_1st_right_edge - m_curr_mid);
-#endif
+		m_curr_mid = (m_curr_left_edge + m_curr_right_edge) / 2;
 	}
 
 	/* ||||--------------------------------||||
@@ -299,13 +382,13 @@ void DirControlAlgorithm::ProcessGeneral(
 		}
 		*/
 		const int track_w = CONSTANTS[m_mode].edge * 2;
-		const int detect_w = VALID_PIXEL - current_1st_left_edge;
+		const int detect_w = VALID_PIXEL - m_curr_left_edge;
 		const int imaginery_w = std::max<int>(track_w - detect_w, 0);
 		const int imaginery_right_edge = VALID_PIXEL + imaginery_w;
-		m_curr_mid = (current_1st_left_edge + imaginery_right_edge) / 2;
+		m_curr_mid = (m_curr_left_edge + imaginery_right_edge) / 2;
 
 		const int side_space = CCD_MID_POS - CONSTANTS[m_mode].edge;
-		if (current_1st_left_edge <= side_space)
+		if (m_curr_left_edge <= side_space)
 		{
 			// Possibly crossroad
 			m_case = 20;
@@ -332,13 +415,13 @@ void DirControlAlgorithm::ProcessGeneral(
 		}
 		*/
 		const int track_w = CONSTANTS[m_mode].edge * 2;
-		const int detect_w = current_1st_right_edge;
+		const int detect_w = m_curr_right_edge;
 		const int imaginery_w = std::max<int>(track_w - detect_w, 0);
 		const int imaginery_left_edge = -imaginery_w;
-		m_curr_mid = (imaginery_left_edge + current_1st_right_edge) / 2;
+		m_curr_mid = (imaginery_left_edge + m_curr_right_edge) / 2;
 
 		const int side_space = CCD_MID_POS - CONSTANTS[m_mode].edge;
-		if (current_1st_right_edge >= CCD_MID_POS + CONSTANTS[m_mode].edge)
+		if (m_curr_right_edge >= CCD_MID_POS + CONSTANTS[m_mode].edge)
 		{
 			// Possibly crossroad
 			m_case = 30;
@@ -368,30 +451,32 @@ bool DirControlAlgorithm::DetectSlope()
 	// XXX
 	return false;
 
+	/*
 	m_car->UpdateGyro();
 	const float filter = m_gyro_filter.Filter(m_car->GetGyroAngle());
 #ifdef DEBUG_PRINT_GYRO
 	printf("%f\n", filter);
 #endif
 	return (abs(filter - m_flat_gyro_angle) >= 2500);
+	*/
 }
 
 void DirControlAlgorithm::ScanAllWhiteOrAllBlackSample(
-		const bitset<libsc::LinearCcd::SENSOR_W> &ccd_data)
+		const bitset<LinearCcd::SENSOR_W> &ccd_data)
 {
-	all_white_smaple_flag = true;
-	all_black_smaple_flag = true;
+	m_is_all_black = true;
+	m_is_all_white = true;
 
-	for (int i = 0; i < VALID_PIXEL
-			&& (all_black_smaple_flag || all_white_smaple_flag); ++i)
+	for (int i = VALID_OFFSET; i < VALID_PIXEL - VALID_OFFSET
+			&& (m_is_all_black || m_is_all_white); ++i)
 	{
-		if (ccd_data[i + VALID_OFFSET])
+		if (ccd_data[i])
 		{
-			all_black_smaple_flag = false;
+			m_is_all_black = false;
 		}
 		else
 		{
-			all_white_smaple_flag = false;
+			m_is_all_white = false;
 		}
 	}
 }
@@ -405,20 +490,37 @@ void DirControlAlgorithm::SetMode(const Uint mode)
 	m_servo_pid.Restart();
 }
 
-void DirControlAlgorithm::UpdatePid(const bool is_straight)
+void DirControlAlgorithm::SetTurnHint(const TurnHint hint)
 {
-	if (is_straight)
+	switch (hint)
 	{
+	case TurnHint::STRAIGHT:
 		m_servo_pid.SetKp(CONSTANTS[m_mode].kp);
 		m_servo_pid.SetKi(CONSTANTS[m_mode].ki);
 		m_servo_pid.SetKd(CONSTANTS[m_mode].kd);
-	}
-	else
-	{
+		break;
+
+	case TurnHint::PRE_TURN:
+#ifdef DEBUG_BEEP_PRE_TURN
+		BeepManager::GetInstance(m_car)->Beep(100);
+#endif
+		m_servo_pid.SetKp(PRE_TURN_CONSTANTS[m_mode].kp);
+		m_servo_pid.SetKi(PRE_TURN_CONSTANTS[m_mode].ki);
+		m_servo_pid.SetKd(PRE_TURN_CONSTANTS[m_mode].kd);
+		break;
+
+	case TurnHint::TURN:
 		m_servo_pid.SetKp(TURN_CONSTANTS[m_mode].kp);
 		m_servo_pid.SetKi(TURN_CONSTANTS[m_mode].ki);
 		m_servo_pid.SetKd(TURN_CONSTANTS[m_mode].kd);
+		break;
 	}
+	m_is_explicit_set_turn_hint = true;
+}
+
+void DirControlAlgorithm::ResetMid()
+{
+	m_curr_mid = m_prev_mid = CCD_MID_POS;
 }
 
 }

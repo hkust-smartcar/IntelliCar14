@@ -8,7 +8,7 @@
 #ifndef LINEAR_CCD_BT_CONTROLLER_H_
 #define LINEAR_CCD_BT_CONTROLLER_H_
 
-#include <libutil/clock.h>
+#include <libsc/k60/timer.h>
 
 #include "linear_ccd/speed_control_1.h"
 
@@ -25,18 +25,19 @@ namespace linear_ccd
 class BtController
 {
 public:
-	BtController();
+	explicit BtController(Car *car);
 
-	bool Control(Car *car);
+	bool Control();
 
 private:
-	bool HandleInput(const char ch, Car *car);
-	void SpeedControlPass(Car *car);
+	bool HandleInput(const char ch);
+	void SpeedControlPass();
 
+	Car *m_car;
 	bool m_is_activated;
-	libutil::Clock::ClockInt m_prev;
+	libsc::k60::Timer::TimerInt m_prev;
 	SpeedControl1 m_speed_control;
-	libutil::Clock::ClockInt m_prev_speed_control_time;
+	libsc::k60::Timer::TimerInt m_prev_speed_control_time;
 };
 
 }

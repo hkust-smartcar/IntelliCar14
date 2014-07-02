@@ -35,6 +35,16 @@ public:
 		return TURN_THRESHOLD;
 	}
 
+	static constexpr int GetCcdValidPixel()
+	{
+		return 128 - 8;
+	}
+
+	static constexpr int GetCcdValidPixelOffset()
+	{
+		return 4;
+	}
+
 private:
 	Config();
 

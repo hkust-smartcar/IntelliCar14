@@ -12,7 +12,7 @@
 #include <cstdint>
 #include <bitset>
 
-#include <libutil/clock.h>
+#include <libsc/k60/timer.h>
 #include <libutil/pid_controller.h>
 
 #include "linear_ccd/bt_controller.h"
@@ -36,44 +36,35 @@ public:
 	void Run();
 
 	static int FwriteHandler(int, char *ptr, int len);
+	static void HardFaultHandler(void);
 
 private:
 	struct LedState
 	{
-		libutil::Clock::ClockInt prev_run;
-		bool flag;
-
-		LedState()
-				: prev_run(0), flag(false)
-		{}
+		libsc::k60::Timer::TimerInt prev_run = 0;
+		bool flag = false;
 	};
 
 	struct ServoState
 	{
-		libutil::Clock::ClockInt prev_run;
-
-		ServoState()
-				: prev_run(0)
-		{}
+		libsc::k60::Timer::TimerInt prev_run = 0;
 	};
 
 	struct SpeedState
 	{
-		libutil::Clock::ClockInt prev_run;
-
-		SpeedState()
-				: prev_run(0)
-		{}
+		libsc::k60::Timer::TimerInt prev_run = 0;
 	};
 
 	struct JoystickState
 	{
-		libutil::Clock::ClockInt prev_run;
-		uint8_t delay;
+		libsc::k60::Timer::TimerInt prev_run = 0;
+		uint8_t delay = 0;
+	};
 
-		JoystickState()
-				: prev_run(0), delay(0)
-		{}
+	struct EmergencyStopState
+	{
+		libsc::k60::Timer::TimerInt trigger_time = 0;
+		bool is_triggered = false;
 	};
 
 	void InitialStage();
@@ -85,8 +76,8 @@ private:
 	bool BtControlPass();
 	void DetectStopLine();
 	void DetectEmergencyStop();
-	std::bitset<libsc::LinearCcd::SENSOR_W> FilterCcdData(
-			const std::bitset<libsc::LinearCcd::SENSOR_W> &data) const;
+	std::bitset<libsc::k60::LinearCcd::SENSOR_W> FilterCcdData(
+			const std::bitset<libsc::k60::LinearCcd::SENSOR_W> &data) const;
 	int16_t ConcludeTurning(const int16_t up_turn, const int16_t down_turn) const;
 
 	void SetConstant(const bool is_straight);
@@ -97,12 +88,15 @@ private:
 	ServoState m_servo_state;
 	SpeedState m_speed_state;
 	JoystickState m_joystick_state;
+	EmergencyStopState m_emergency_stop_state;
 
 	DirControlAlgorithm m_dir_control[2];
 	SpeedControl1 m_speed_control;
 
-	int8_t m_emergency_stop_delay;
+	libsc::k60::Timer::TimerInt m_start;
 	bool m_is_stop;
+
+	bool m_is_turn;
 
 	uint8_t m_mode;
 

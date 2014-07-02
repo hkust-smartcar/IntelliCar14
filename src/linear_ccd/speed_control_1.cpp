@@ -8,21 +8,25 @@
 
 #include <cstdint>
 
-#include <libutil/clock.h>
+#include <libsc/k60/system_timer.h>
+#include <libsc/k60/timer.h>
 #include <libutil/misc.h>
 #include <libutil/pid_controller.h>
 #include <libutil/pid_controller.tcc>
 
 #include "linear_ccd/config.h"
+#include "linear_ccd/beep_manager.h"
 #include "linear_ccd/car.h"
 #include "linear_ccd/linear_ccd_app.h"
 #include "linear_ccd/speed_control_1.h"
+#include "linear_ccd/turn_hint.h"
 
+using namespace libsc::k60;
 using namespace std;
-using libutil::Clock;
 
-#define MOTOR_MAX_PWM 6500
-#define ACCELERATE_DELAY 7
+#define MOTOR_MAX_PWM 7000
+#define ACCELERATE_DELAY 5
+#define I_LIMIT 3500
 
 namespace linear_ccd
 {
@@ -94,11 +98,30 @@ constexpr SpeedConstant CONSTANTS[] =
 		{235, 0, 26.8f, 0.0f, 10.0f},
 		{290, 0, 26.8f, 0.0f, 10.0f},
 		*/
-		{240, 0, 578.0f, 0.0f, 57.8f},
-		{240, 0, 578.0f, 0.0f, 57.8f},
-		{240, 0, 578.0f, 0.0f, 57.8f},
-		{240, 0, 578.0f, 0.0f, 57.8f},
-		{240, 0, 578.0f, 0.0f, 57.8f},
+
+		{330, 0, 104.5f, 100.0f, 0.0f},
+		{330, 0, 104.5f, 100.0f, 0.0f},
+		{330, 0, 104.5f, 100.0f, 0.0f},
+		{330, 0, 104.5f, 100.0f, 0.0f},
+		{330, 0, 104.5f, 100.0f, 0.0f},
+
+		{250, 0, 209.0f, 0.0f, 7.5f},
+		{250, 0, 209.0f, 0.0f, 7.5f},
+		{250, 0, 209.0f, 0.0f, 7.5f},
+		{250, 0, 209.0f, 0.0f, 7.5f},
+		{250, 0, 209.0f, 0.0f, 7.5f},
+
+		{250, 0, 104.5f, 80.0f, 0.0f},
+		{250, 0, 104.5f, 120.0f, 0.0f},
+		{250, 0, 104.5f, 160.0f, 0.0f},
+		{250, 0, 104.5f, 200.0f, 0.0f},
+		{250, 0, 104.5f, 240.0f, 0.0f},
+
+		{350, 0, 209.0f, 0.0f, 0.0f},
+		{350, 0, 259.0f, 0.0f, 0.0f},
+		{350, 0, 309.0f, 0.0f, 0.0f},
+		{350, 0, 359.0f, 0.0f, 0.0f},
+		{350, 0, 409.0f, 0.0f, 0.0f},
 
 		{280, 0, 578.0f, 0.0f, 57.8f},
 
@@ -150,22 +173,37 @@ constexpr SpeedConstant CONSTANTS[] =
 		// Set 1
 		//PWM[0, 7k]
 		//turn threshold 35
-		//{235, 0, 106.5f, 0.0f, 27.5f},
+		{235, 0, 106.5f, 0.0f, 27.5f},
 
 		// Set 2
 		//PWM[0, 7k]
 		//turn threshold 35
-		//{290, 0, 106.5f, 0.0f, 27.5f},
+		{290, 0, 106.5f, 0.0f, 27.5f},
 
 		// Set 3
 		//PWM[-4k, 7k]
 		//turn threshold 35
-		//{305, 0, 106.5f, 0.0f, 27.5f}, // V. Good
+		{305, 0, 106.5f, 0.0f, 27.5f}, // V. Good
 
 		// Set 4
 		//PWM[-4k, 7k]
 		//turn threshold 40
-		//{340, 0, 106.5f, 0.0f, 27.5f}, // Acceptable
+		{340, 0, 106.5f, 0.0f, 27.5f}, // Acceptable
+
+		// Set 5
+		//Before fixing tire
+		{240, 0, 578.0f, 0.0f, 57.8f},
+
+		// Set 6
+		// Before mech change
+		{380, 0, 578.0f, 0.0f, 57.8f},
+
+		// Set 7
+		{340, 0, 578.0f, 0.0f, 57.8f},
+
+		// Set 8
+		// P only
+		//{250, 0, 209.0f, 0.0f, 0.0f},
 };
 
 //#define TURN_CONSTANTS CONSTANTS
@@ -183,11 +221,30 @@ constexpr SpeedConstant TURN_CONSTANTS[] =
 		//{250, 0, 106.5f, 0.0f, 27.5f},
 
 		//{160, 0, 578.0f, 0.0f, 57.8f},
-		{140, 0, 578.0f, 0.0f, 47.8f},
-		{150, 0, 578.0f, 0.0f, 47.8f},
-		{160, 0, 578.0f, 0.0f, 47.8f},
-		{170, 0, 578.0f, 0.0f, 47.8f},
-		{180, 0, 578.0f, 0.0f, 47.8f},
+
+		{280, 0, 104.5f, 100.0f, 0.0f},
+		{280, 0, 104.5f, 100.0f, 0.0f},
+		{280, 0, 104.5f, 100.0f, 0.0f},
+		{280, 0, 104.5f, 100.0f, 0.0f},
+		{280, 0, 104.5f, 100.0f, 0.0f},
+
+		{200, 0, 240.0f, 0.0f, 2.5f},
+		{200, 0, 240.0f, 0.0f, 5.0f},
+		{200, 0, 240.0f, 0.0f, 7.5f},
+		{200, 0, 240.0f, 0.0f, 10.0f},
+		{200, 0, 240.0f, 0.0f, 12.5f},
+
+		{250, 0, 104.5f, 80.0f, 0.0f},
+		{250, 0, 104.5f, 120.0f, 0.0f},
+		{250, 0, 104.5f, 160.0f, 0.0f},
+		{250, 0, 104.5f, 200.0f, 0.0f},
+		{250, 0, 104.5f, 240.0f, 0.0f},
+
+		{240, 0, 209.0f, 0.0f, 0.0f},
+		{240, 0, 259.0f, 0.0f, 0.0f},
+		{240, 0, 309.0f, 0.0f, 0.0f},
+		{240, 0, 359.0f, 0.0f, 0.0f},
+		{240, 0, 409.0f, 0.0f, 0.0f},
 
 		{120, 0, 578.0f, 0.0f, 57.8f},
 		{140, 0, 578.0f, 0.0f, 57.8f},
@@ -220,71 +277,126 @@ constexpr SpeedConstant TURN_CONSTANTS[] =
 		// Set 1
 		//PWM[0, 7k]
 		//turn threshold 35
-		//{195, 0, 106.5f, 0.0f, 27.5f},
+		{195, 0, 106.5f, 0.0f, 27.5f},
 
 		// Set 2
 		//PWM[0, 7k]
 		//turn threshold 35
-		//{205, 0, 106.5f, 0.0f, 27.5f},
+		{205, 0, 106.5f, 0.0f, 27.5f},
 
 		// Set 3
 		//PWM[-4k, 7k]
 		//turn threshold 35
-		//{205, 0, 106.5f, 0.0f, 27.5f}, // V. Good
+		{205, 0, 106.5f, 0.0f, 27.5f}, // V. Good
 
 		// Set 4
 		//PWM[-4k, 7k]
 		//turn threshold 40
-		//{225, 0, 106.5f, 0.0f, 27.5f}, // Acceptable
+		{225, 0, 106.5f, 0.0f, 27.5f}, // Acceptable
+
+		// Set 5
+		//Before fixing tire
+		{140, 0, 578.0f, 0.0f, 47.8f},
+		{150, 0, 578.0f, 0.0f, 47.8f},
+		{160, 0, 578.0f, 0.0f, 47.8f}, // Good
+		{170, 0, 578.0f, 0.0f, 47.8f},
+		{180, 0, 578.0f, 0.0f, 47.8f},
+
+		// Set 6
+		{220, 0, 578.0f, 0.0f, 47.8f},
+		{240, 0, 578.0f, 0.0f, 47.8f},
+		{260, 0, 578.0f, 0.0f, 47.8f},
+		{270, 0, 578.0f, 0.0f, 47.8f},
+		{300, 0, 578.0f, 0.0f, 47.8f},
+
+		// Set 7
+		{270, 0, 578.0f, 0.0f, 47.8f},
+};
+
+//#define PRE_TURN_CONSTANTS CONSTANTS
+constexpr SpeedConstant PRE_TURN_CONSTANTS[] =
+{
+		{0, 0, 0.0f, 0.0f, 0.0f},
+
+		{260, 0, 104.5f, 100.0f, 0.0f},
+		{260, 0, 104.5f, 100.0f, 0.0f},
+		{260, 0, 104.5f, 100.0f, 0.0f},
+		{260, 0, 104.5f, 100.0f, 0.0f},
+		{260, 0, 104.5f, 100.0f, 0.0f},
+
+		{250, 0, 209.0f, 0.0f, 7.5f},
+		{250, 0, 209.0f, 0.0f, 7.5f},
+		{250, 0, 209.0f, 0.0f, 7.5f},
+		{250, 0, 209.0f, 0.0f, 7.5f},
+		{250, 0, 209.0f, 0.0f, 7.5f},
+
+		{250, 0, 104.5f, 80.0f, 0.0f},
+		{250, 0, 104.5f, 120.0f, 0.0f},
+		{250, 0, 104.5f, 160.0f, 0.0f},
+		{250, 0, 104.5f, 200.0f, 0.0f},
+		{250, 0, 104.5f, 240.0f, 0.0f},
+
+		{300, 0, 209.0f, 0.0f, 0.0f},
+		{300, 0, 259.0f, 0.0f, 0.0f},
+		{300, 0, 309.0f, 0.0f, 0.0f},
+		{300, 0, 359.0f, 0.0f, 0.0f},
+		{300, 0, 409.0f, 0.0f, 0.0f},
+
+		// Set 6
+		{290, 0, 578.0f, 0.0f, 42.8f},
+
+		// Set 7
+		{260, 0, 578.0f, 0.0f, 42.8f},
 };
 
 }
 
-SpeedControl1::SpeedControl1()
-		: m_pid(CONSTANTS[0].encoder, CONSTANTS[0].kp, CONSTANTS[0].ki,
-					CONSTANTS[0].kd),
+SpeedControl1::SpeedControl1(Car *car)
+		: m_car(car), m_pid(CONSTANTS[0].encoder, CONSTANTS[0].kp,
+				  CONSTANTS[0].ki, CONSTANTS[0].kd),
 		  m_mode(0), m_straight_mode_delay(0),
 		  m_is_startup(true)
 {
-	m_pid.SetILimit(1500);
+	m_pid.SetILimit(3000);
 }
 
-void SpeedControl1::OnFinishWarmUp(Car*)
+void SpeedControl1::OnFinishWarmUp()
 {
 	m_pid.Restart();
 }
 
-void SpeedControl1::Control(Car *car)
+void SpeedControl1::Control()
 {
-	car->UpdateEncoder();
-	const int16_t count = car->GetEncoderCount();
-	const Clock::ClockInt time = Clock::Time();
+	m_car->UpdateEncoder();
+	const int16_t count = m_car->GetEncoderCount();
+	const Timer::TimerInt time = SystemTimer::Time();
 #ifdef DEBUG_PRINT_ENCODER
 	iprintf("%d\n", count);
 #endif
 
-	int power;
+	int power = m_pid.Calc(time, count);
+	/*
 	if (abs(car->GetTurning()) <= Config::GetTurnThreshold())
 	{
-		UpdatePid(true);
+		SetTurnHint(TurnHint::STRAIGHT);
 		power = m_pid.Calc(time, count) + CONSTANTS[m_mode].pwm;
 	}
 	else
 	{
-		UpdatePid(false);
+		SetTurnHint(TurnHint::TURN);
 		power = m_pid.Calc(time, count) + TURN_CONSTANTS[m_mode].pwm;
 	}
+	*/
 	//LOG_I("Power: %d", power);
 	//printf("%u\n", count_diff);
 	//iprintf("%d, %d\n", count, power);
 
 	// Prevent the output going crazy due to initially idle encoder
-	if (m_is_startup && time < 1000 + LinearCcdApp::INITIAL_DELAY)
+	if (m_is_startup && time < 250 + LinearCcdApp::INITIAL_DELAY)
 	{
-		const int clamp_power = car->GetMotorPower()
-				+ libutil::Clamp<int>(-300, power - car->GetMotorPower(),
-						300);
-		car->SetMotorPower(clamp_power);
+		const int clamp_power = m_car->GetMotorPower()
+				+ libutil::Clamp<int>(-400, power - m_car->GetMotorPower(), 400);
+		m_car->SetMotorPower(clamp_power);
 	}
 	else
 	{
@@ -293,13 +405,35 @@ void SpeedControl1::Control(Car *car)
 			m_is_startup = false;
 			m_pid.Restart();
 		}
-		if (abs(power - car->GetMotorPower()) > 1500)
+/*
+		if (abs(power - car->GetMotorPower()) > 3500)
 		{
-			// Max 1500 diff in one step
-			power = libutil::Clamp<int>(car->GetMotorPower() - 1500, power,
-					car->GetMotorPower() + 1500);
+			// Max 3500 diff in one step
+			power = libutil::Clamp<int>(car->GetMotorPower() - 3500, power,
+					car->GetMotorPower() + 3500);
 		}
-		car->SetMotorPower(libutil::Clamp<int>(-MOTOR_MAX_PWM, power, MOTOR_MAX_PWM));
+*/
+		if (power < 0)
+		{
+			++m_reverse_count;
+			if (power >= -3500
+					&& m_reverse_count < (m_pid.GetSetpoint() >> 4))
+			{
+				power = 0;
+			}
+		}
+		else
+		{
+			m_reverse_count = 0;
+		}
+#ifdef DEBUG_BEEP_REVERSE_MOTOR
+		if (power < 0)
+		{
+			BeepManager::GetInstance(m_car)->Beep(100);
+		}
+#endif
+		m_car->SetMotorPower(libutil::Clamp<int>(-MOTOR_MAX_PWM, power,
+				MOTOR_MAX_PWM));
 	}
 
 #ifdef DEBUG
@@ -308,10 +442,11 @@ void SpeedControl1::Control(Car *car)
 #endif
 }
 
-void SpeedControl1::UpdatePid(const bool is_straight)
+void SpeedControl1::SetTurnHint(const TurnHint hint)
 {
-	if (is_straight)
+	switch (hint)
 	{
+	case TurnHint::STRAIGHT:
 		if (m_straight_mode_delay == static_cast<uint8_t>(-1))
 		{
 			m_straight_mode_delay = ACCELERATE_DELAY;
@@ -327,14 +462,31 @@ void SpeedControl1::UpdatePid(const bool is_straight)
 		{
 			--m_straight_mode_delay;
 		}
-	}
-	else
-	{
-		m_pid.SetSetpoint(TURN_CONSTANTS[m_mode].encoder);
-		m_pid.SetKp(TURN_CONSTANTS[m_mode].kp);
-		m_pid.SetKi(TURN_CONSTANTS[m_mode].ki);
-		m_pid.SetKd(TURN_CONSTANTS[m_mode].kd);
-		m_straight_mode_delay = static_cast<uint8_t>(-1);
+		break;
+
+	case TurnHint::PRE_TURN:
+		m_pid.SetSetpoint(PRE_TURN_CONSTANTS[m_mode].encoder);
+		m_pid.SetKp(PRE_TURN_CONSTANTS[m_mode].kp);
+		m_pid.SetKi(PRE_TURN_CONSTANTS[m_mode].ki);
+		m_pid.SetKd(PRE_TURN_CONSTANTS[m_mode].kd);
+		break;
+
+	case TurnHint::TURN:
+		{
+			/*
+			const int min_sp = TURN_CONSTANTS[m_mode].encoder;
+			const int max_sp = CONSTANTS[m_mode].encoder;
+			const int diff_sp = max_sp - min_sp;
+			const int sp = abs(m_car->GetTurning()) / 100.0f * diff_sp + min_sp;
+			m_pid.SetSetpoint(sp);
+			*/
+			m_pid.SetSetpoint(TURN_CONSTANTS[m_mode].encoder);
+			m_pid.SetKp(TURN_CONSTANTS[m_mode].kp);
+			m_pid.SetKi(TURN_CONSTANTS[m_mode].ki);
+			m_pid.SetKd(TURN_CONSTANTS[m_mode].kd);
+			m_straight_mode_delay = static_cast<uint8_t>(-1);
+		}
+		break;
 	}
 }
 

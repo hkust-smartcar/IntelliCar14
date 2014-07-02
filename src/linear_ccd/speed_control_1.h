@@ -15,6 +15,7 @@
 #include "libutil/pid_controller.h"
 
 #include "linear_ccd/speed_control_strategy.h"
+#include "linear_ccd/turn_hint.h"
 
 namespace linear_ccd
 {
@@ -29,24 +30,26 @@ namespace linear_ccd
 class SpeedControl1 : public SpeedControlStrategy
 {
 public:
-	SpeedControl1();
+	explicit SpeedControl1(Car *car);
 
-	void OnFinishWarmUp(Car *car) override;
-	void Control(Car *car) override;
+	void OnFinishWarmUp() override;
+	void Control() override;
 
 	void SetMode(const Uint mode) override
 	{
 		m_mode = mode;
 	}
 
-private:
-	void UpdatePid(const bool is_straight);
+	void SetTurnHint(const TurnHint hint);
 
-	libutil::PidController<int32_t, int> m_pid;
+private:
+	Car *m_car;
+	libutil::PidController<int32_t, int32_t> m_pid;
 	uint8_t m_mode;
 	uint8_t m_straight_mode_delay;
 
 	bool m_is_startup;
+	int m_reverse_count;
 };
 
 }

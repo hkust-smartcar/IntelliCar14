@@ -106,6 +106,7 @@ private:
 
 	uint8_t m_case;
 	int16_t m_turning;
+	int16_t m_prev_turning;
 
 	uint8_t m_mode;
 	bool m_is_explicit_set_turn_hint;

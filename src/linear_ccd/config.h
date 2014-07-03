@@ -16,7 +16,7 @@ public:
 		CCD_PAGE,
 		DATA_PAGE,
 		PROFILE_PAGE,
-		NULL_PAGE,
+
 		LCD_SCREEN_STATE_SIZE,
 	};
 
@@ -25,24 +25,34 @@ public:
 		GetInstance()->m_lcd_screen_state = state;
 	}
 
+	static void SetLcdPause(const bool flag)
+	{
+		GetInstance()->m_is_lcd_pause = flag;
+	}
+
 	static LcdScreenState GetLcdScreenState()
 	{
 		return GetInstance()->m_lcd_screen_state;
 	}
 
+	static bool IsLcdPause()
+	{
+		return GetInstance()->m_is_lcd_pause;
+	}
+
 	static constexpr int GetTurnThreshold()
 	{
-		return TURN_THRESHOLD;
+		return 36;
 	}
 
 	static constexpr int GetCcdValidPixel()
 	{
-		return 128 - 8;
+		return 128 - 10;
 	}
 
 	static constexpr int GetCcdValidPixelOffset()
 	{
-		return 4;
+		return 5;
 	}
 
 private:
@@ -58,7 +68,7 @@ private:
 	}
 
 	LcdScreenState m_lcd_screen_state;
-	static constexpr int TURN_THRESHOLD = 36;
+	bool m_is_lcd_pause;
 
 	static Config *m_instance;
 };

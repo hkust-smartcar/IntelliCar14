@@ -53,18 +53,18 @@ struct ServoConstant
 constexpr ServoConstant CONSTANTS[] =
 {
 		//{0.0f, 0.0f, 0.0f, 0},
-		{8.57f, 0.0f, 0.12f, 48},
+		{0.87f, 0.0f, 0.8f, 35},
 		//
 		//{1.57f, 0.0f, 0.0f, 62},
 		//{1.62f, 0.0f, 0.0f, 62},
 		//{1.67f, 0.0f, 0.0f, 62},
 
 		// Down
-		{8.57f, 0.0f, 0.12f, 48},
-		{8.57f, 0.0f, 0.14f, 48},
-		{8.57f, 0.0f, 0.16f, 48},
-		{8.57f, 0.0f, 0.18f, 48},
-		{8.57f, 0.0f, 0.20f, 48},
+		{0.87f, 0.0f, 0.3f, 35},
+		{0.87f, 0.0f, 0.3f, 35},
+		{0.87f, 0.0f, 0.3f, 35},
+		{0.87f, 0.0f, 0.3f, 35},
+		{0.87f, 0.0f, 0.3f, 35},
 
 		// Up
 		{0.0f, 0.0f, 0.0f, 0},
@@ -144,13 +144,13 @@ constexpr ServoConstant CONSTANTS[] =
 
 constexpr ServoConstant TURN_CONSTANTS[] =
 {
-		{11.87f, 0.0f, 0.0f, 48},
+		{17.81f, 0.0f, 1.15f, 35},
 
-		{11.87f, 0.0f, 0.0f, 48},
-		{11.87f, 0.0f, 0.0f, 48},
-		{11.87f, 0.0f, 0.0f, 48},
-		{11.87f, 0.0f, 0.0f, 48},
-		{11.87f, 0.0f, 0.0f, 48},
+		{13.81f, 0.0f, 1.15f, 35},
+		{15.81f, 0.0f, 1.15f, 35},
+		{17.81f, 0.0f, 1.15f, 35},
+		{19.81f, 0.0f, 1.15f, 35},
+		{21.81f, 0.0f, 1.15f, 35},
 
 		{0.0f, 0.0f, 0.0f, 0},
 		{0.0f, 0.0f, 0.0f, 0},
@@ -170,16 +170,16 @@ constexpr ServoConstant TURN_CONSTANTS[] =
 		{0.0f, 0.0f, 0.0f, 0},
 };
 
-#define PRE_TURN_CONSTANTS TURN_CONSTANTS
-/*
 constexpr ServoConstant PRE_TURN_CONSTANTS[] =
 {
+		{8.57f, 0.0f, 0.05f, 35},
+
 		// Down
-		{3.27f, 0.0f, 0.15f, 35},
-		{3.27f, 0.0f, 0.15f, 35},
-		{3.27f, 0.0f, 0.15f, 35},
-		{3.27f, 0.0f, 0.15f, 35},
-		{3.27f, 0.0f, 0.15f, 35},
+		{8.57f, 0.0f, 0.05f, 35},
+		{8.57f, 0.0f, 0.07f, 35},
+		{8.57f, 0.0f, 0.09f, 35},
+		{8.57f, 0.0f, 0.11f, 35},
+		{8.57f, 0.0f, 0.13f, 35},
 
 		// Up
 		{0.0f, 0.0f, 0.0f, 0},
@@ -201,7 +201,6 @@ constexpr ServoConstant PRE_TURN_CONSTANTS[] =
 		{0.0f, 0.0f, 0.0f, 0},
 		{0.0f, 0.0f, 0.0f, 0},
 };
-*/
 
 }
 
@@ -221,11 +220,13 @@ DirControlAlgorithm::DirControlAlgorithm(Car *car)
 
 		  m_servo_pid(CCD_MID_POS, CONSTANTS[0].kp, CONSTANTS[0].ki,
 				  CONSTANTS[0].kd),
-		  m_mid_filter(0.0000005f, 0.000001f, 64, 1),
+		  //m_mid_filter(0.0000005f, 0.000001f, 64, 1),
+		  m_mid_filter(0.0000005f, 5.0f, 64, 1),
 		  //m_gyro_filter(0, 0, 0, 0), // will be init later
 
 		  m_case(0),
 		  m_turning(0),
+		  m_prev_turning(0),
 
 		  m_mode(0),
 		  m_is_explicit_set_turn_hint(false)
@@ -272,25 +273,55 @@ int16_t DirControlAlgorithm::Process(const bitset<LinearCcd::SENSOR_W> &ccd_data
 	m_servo_pid.Print("servo");
 #endif
 
+	if (!m_is_explicit_set_turn_hint)
+	{
+		const int error = abs(CCD_MID_POS - m_curr_mid);
+		/*
+		if (error > 16)
+		{
+			//SetTurnHint(TurnHint::TURN);
+			m_turning = (CCD_MID_POS - m_curr_mid > 0) ? -100 : 100;
+		}
+		else if (error > 11)
+		{
+			SetTurnHint(TurnHint::PRE_TURN);
+			//m_turning = (CCD_MID_POS - m_curr_mid > 0) ? -100 : 100;
+		}
+		else
+		{
+			SetTurnHint(TurnHint::STRAIGHT);
+		}
+		*/
+		if (error > 14)
+		{
+			m_servo_pid.SetSetpoint(64 + ((CCD_MID_POS > m_curr_mid) ? -5 : 5));
+			SetTurnHint(TurnHint::TURN);
+		}
+		else
+		{
+			if (m_servo_pid.GetSetpoint() != CCD_MID_POS)
+			{
+				m_mid_filter = libutil::KalmanFilter(0.0000005f, 5.0f,
+						m_prev_mid, 1);
+#ifdef DEBUG_BEEP_STRAIGHT_IN
+				BeepManager::GetInstance(m_car)->Beep(100);
+#endif
+			}
+			SetTurnHint(TurnHint::STRAIGHT);
+		}
+	}
+	m_is_explicit_set_turn_hint = false;
+
 	if (m_turning == INT16_MIN)
 	{
-		if (!m_is_explicit_set_turn_hint)
+		const int error = abs(CCD_MID_POS - m_curr_mid);
+		if (error < 14)
 		{
-			if (m_turning <= Config::GetTurnThreshold())
-			{
-				SetTurnHint(TurnHint::STRAIGHT);
-			}
-			else
-			{
-				SetTurnHint(TurnHint::TURN);
-			}
+			m_curr_mid = m_mid_filter.Filter(m_curr_mid);
 		}
-
-		//m_curr_mid = m_mid_filter.Filter(m_curr_mid);
 		// Opposite direction
 		m_turning = -m_servo_pid.Calc(m_curr_mid);
 	}
-	m_is_explicit_set_turn_hint = false;
 
 	/*
 	if (current_mid_error_pos < 0)
@@ -300,6 +331,7 @@ int16_t DirControlAlgorithm::Process(const bitset<LinearCcd::SENSOR_W> &ccd_data
 	*/
 	m_prev_mid = m_curr_mid;
 	//current_edge_middle_distance = current_1st_right_edge - current_1st_left_edge;
+	m_prev_turning = m_turning;
 
 	return m_turning;
 }
@@ -340,7 +372,8 @@ void DirControlAlgorithm::ProcessGeneral(
 	m_curr_left_edge = -1;
 	for (int i = libutil::ClampVal<int>(VALID_OFFSET, m_prev_mid,
 			VALID_PIXEL + VALID_OFFSET - 1); i >= VALID_OFFSET; --i)
-	{ // scan from last_sample_error_pos to left edge
+	{
+		// scan from last_sample_error_pos to left edge
 		if (!ccd_data[i])
 		{
 			m_curr_left_edge = i;
@@ -353,7 +386,8 @@ void DirControlAlgorithm::ProcessGeneral(
 	m_curr_right_edge = -1;
 	for (int i = libutil::ClampVal<int>(VALID_OFFSET, m_prev_mid,
 			VALID_PIXEL + VALID_OFFSET - 1); i < VALID_PIXEL + VALID_OFFSET; ++i)
-	{  // scan from last_sample_error_pos to right edge
+	{
+		// scan from last_sample_error_pos to right edge
 		if (!ccd_data[i])
 		{
 			m_curr_right_edge = i;
@@ -495,6 +529,7 @@ void DirControlAlgorithm::SetTurnHint(const TurnHint hint)
 	switch (hint)
 	{
 	case TurnHint::STRAIGHT:
+		m_servo_pid.SetSetpoint(64);
 		m_servo_pid.SetKp(CONSTANTS[m_mode].kp);
 		m_servo_pid.SetKi(CONSTANTS[m_mode].ki);
 		m_servo_pid.SetKd(CONSTANTS[m_mode].kd);

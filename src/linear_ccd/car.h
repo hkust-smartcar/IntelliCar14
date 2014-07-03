@@ -90,7 +90,7 @@ public:
 	void StartCcdSample()
 	{
 		m_ccds[0].StartSample();
-		m_ccds[1].StartSample();
+		//m_ccds[1].StartSample();
 	}
 
 	void StartCcdSample(const uint8_t id)
@@ -100,7 +100,7 @@ public:
 
 	bool CcdSampleProcess()
 	{
-		return m_ccds[0].SampleProcess() && m_ccds[1].SampleProcess();
+		return m_ccds[0].SampleProcess() /*&& m_ccds[1].SampleProcess()*/;
 	}
 
 	bool CcdSampleProcess(const uint8_t id)
@@ -116,7 +116,7 @@ public:
 
 	bool IsCcdReady() const
 	{
-		return m_ccds[0].IsImageReady() && m_ccds[1].IsImageReady();
+		return m_ccds[0].IsImageReady() /*&& m_ccds[1].IsImageReady()*/;
 	}
 
 	bool IsCcdReady(const uint8_t id) const

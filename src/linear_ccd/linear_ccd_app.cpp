@@ -38,13 +38,14 @@ using namespace libsc::k60;
 using namespace std;
 
 #define LED_FREQ 250
-#define SERVO_FREQ 7
+#define SERVO_FREQ 3
 #define SPEED_CTRL_FREQ 19
 #define JOYSTICK_FREQ 25
 
 #define EMERGENCY_STOP_DELAY 3
 
-#define AUTOSTOP_TIME 22500
+//#define AUTOSTOP_TIME 22500
+#define AUTOSTOP_TIME 19000
 
 namespace linear_ccd
 {
@@ -127,10 +128,11 @@ void LinearCcdApp::InitialStage()
 	dac_init(DAC0);
 	//dac_out(DAC0, 0x520); 21freq
 	//dac_out(DAC0, 0x310);
-	dac_out(DAC0, 0x310);
+	//dac_out(DAC0, 0x260);
+	dac_out(DAC0, 0x150);
 	dac_init(DAC1);
 	//dac_out(DAC1, 0x240);
-	dac_out(DAC1, 0x310);
+	//dac_out(DAC1, 0x310);
 
 	while (SystemTimer::Time() < INITIAL_DELAY)
 	{
@@ -250,7 +252,8 @@ void LinearCcdApp::ServoPass()
 		iprintf("ccd f: %lu\n", Timer::TimeDiff(time, m_servo_state.prev_run));
 #endif
 #ifdef DEBUG_LCD_PRINT_INTERVAL
-		if (Config::GetLcdScreenState() == Config::PROFILE_PAGE)
+		if (Config::GetLcdScreenState() == Config::PROFILE_PAGE
+				&& !Config::IsLcdPause())
 		{
 			m_car.LcdSetRow(0);
 			m_car.LcdPrintString(libutil::String::Format("ccd f: %d\n",
@@ -262,10 +265,11 @@ void LinearCcdApp::ServoPass()
 		m_servo_state.prev_run = time;
 		m_car.StartCcdSample();
 
+/*
 		//const int16_t up_turn = 0;
 		const bitset<LinearCcd::SENSOR_W> &ccd_data_up = FilterCcdData(
 				m_car.GetCcdSample(1));
-		const int16_t up_turn = 0; //m_dir_control[1].Process(ccd_data_up);
+		const int16_t up_turn = m_dir_control[1].Process(ccd_data_up);
 #ifdef DEBUG_PRINT_CASE
 		LOG_D("up_case :%d", m_dir_control[1].GetCase());
 #endif
@@ -288,11 +292,14 @@ void LinearCcdApp::ServoPass()
 		}
 #endif
 
-
 		if (abs(up_turn) > Config::GetTurnThreshold())
 		{
 			m_dir_control[0].SetTurnHint(TurnHint::PRE_TURN);
 		}
+*/
+		const bitset<LinearCcd::SENSOR_W> ccd_data_up;
+		const int16_t up_turn = 0;
+
 		const bitset<LinearCcd::SENSOR_W> &ccd_data_down = FilterCcdData(
 				m_car.GetCcdSample(0));
 		const int16_t down_turn = m_dir_control[0].Process(ccd_data_down);
@@ -300,7 +307,8 @@ void LinearCcdApp::ServoPass()
 		LOG_D("down_case :%d", m_dir_control[0].GetCase());
 #endif
 #ifdef DEBUG_LCD_PRINT_CASE
-		if (Config::GetLcdScreenState() == Config::DATA_PAGE)
+		if (Config::GetLcdScreenState() == Config::DATA_PAGE
+				&& !Config::IsLcdPause())
 		{
 			m_car.LcdSetRow(5);
 			m_car.LcdPrintString(libutil::String::Format("DN c: %d\nm: %d\n",
@@ -309,7 +317,8 @@ void LinearCcdApp::ServoPass()
 		}
 #endif
 #ifdef DEBUG_LCD_PRINT_EDGE
-		if (Config::GetLcdScreenState() == Config::DATA_PAGE)
+		if (Config::GetLcdScreenState() == Config::DATA_PAGE
+				&& !Config::IsLcdPause())
 		{
 			m_car.LcdSetRow(8);
 			m_car.LcdPrintString(libutil::String::Format("e: %3d %3d\n",
@@ -329,7 +338,8 @@ void LinearCcdApp::ServoPass()
 		LOG_D("turn :%d", turning);
 #endif
 #ifdef DEBUG_LCD_PRINT_TURNING
-		if (Config::GetLcdScreenState() == Config::DATA_PAGE)
+		if (Config::GetLcdScreenState() == Config::DATA_PAGE
+				&& !Config::IsLcdPause())
 		{
 			m_car.LcdSetRow(0);
 			m_car.LcdPrintString(libutil::String::Format("t: %d\n", turning)
@@ -378,7 +388,8 @@ void LinearCcdApp::ServoPass()
 		}
 
 #ifdef DEBUG_LCD_PRINT_CCD
-		if (Config::GetLcdScreenState() == Config::CCD_PAGE)
+		if (Config::GetLcdScreenState() == Config::CCD_PAGE
+				&& !Config::IsLcdPause())
 		{
 			static int y = 0;
 			static const int MID_Y = libsc::Lcd::H / 2;
@@ -416,7 +427,8 @@ void LinearCcdApp::ServoPass()
 		iprintf("ccd t: %lu\n", Timer::TimeDiff(SystemTimer::Time(), time));
 #endif
 #ifdef DEBUG_LCD_PRINT_INTERVAL
-		if (Config::GetLcdScreenState() == Config::PROFILE_PAGE)
+		if (Config::GetLcdScreenState() == Config::PROFILE_PAGE
+				&& !Config::IsLcdPause())
 		{
 			m_car.LcdSetRow(1);
 			m_car.LcdPrintString(libutil::String::Format("ccd t: %d\n",
@@ -437,7 +449,8 @@ void LinearCcdApp::SpeedControlPass()
 		iprintf("speed freq: %lu\n", Timer::TimeDiff(time, m_speed_state.prev_run));
 #endif
 #ifdef DEBUG_LCD_PRINT_INTERVAL
-		if (Config::GetLcdScreenState() == Config::PROFILE_PAGE)
+		if (Config::GetLcdScreenState() == Config::PROFILE_PAGE
+				&& !Config::IsLcdPause())
 		{
 			m_car.LcdSetRow(2);
 			m_car.LcdPrintString(libutil::String::Format("spd freg: %d\n",
@@ -454,7 +467,8 @@ void LinearCcdApp::SpeedControlPass()
 		iprintf("spd t: %lu\n", Timer::TimeDiff(SystemTimer::Time(), time));
 #endif
 #ifdef DEBUG_LCD_PRINT_INTERVAL
-		if (Config::GetLcdScreenState() == Config::PROFILE_PAGE)
+		if (Config::GetLcdScreenState() == Config::PROFILE_PAGE
+				&& !Config::IsLcdPause())
 		{
 			m_car.LcdSetRow(3);
 			m_car.LcdPrintString(libutil::String::Format("spd t: %d\n",
@@ -509,6 +523,10 @@ void LinearCcdApp::JoystickPass()
 				m_car.LcdSetRow(0);
 				m_car.LcdPrintString(libutil::String::Format("%d",
 						Config::GetLcdScreenState()).c_str(), 0xFFFF);
+				break;
+
+			case Joystick::State::SELECT:
+				Config::SetLcdPause(!Config::IsLcdPause());
 				break;
 
 			default:
@@ -573,7 +591,7 @@ void LinearCcdApp::DetectEmergencyStop()
 	{
 		if (m_emergency_stop_state.is_triggered)
 		{
-			if (Timer::TimeDiff(time, m_emergency_stop_state.trigger_time) > 500)
+			if (Timer::TimeDiff(time, m_emergency_stop_state.trigger_time) > 200)
 			{
 				// Emergency stop
 				m_is_stop = true;

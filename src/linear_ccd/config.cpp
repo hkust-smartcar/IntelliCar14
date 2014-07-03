@@ -13,7 +13,8 @@ namespace linear_ccd
 Config *Config::m_instance = nullptr;
 
 Config::Config()
-		: m_lcd_screen_state(CCD_PAGE)
+		: m_lcd_screen_state(CCD_PAGE),
+		  m_is_lcd_pause(true)
 {}
 
 }

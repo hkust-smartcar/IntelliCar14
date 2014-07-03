@@ -25,7 +25,7 @@ using namespace libsc::k60;
 using namespace std;
 
 #define MOTOR_MAX_PWM 7000
-#define ACCELERATE_DELAY 5
+#define ACCELERATE_DELAY 7
 #define I_LIMIT 3500
 
 namespace linear_ccd
@@ -99,11 +99,11 @@ constexpr SpeedConstant CONSTANTS[] =
 		{290, 0, 26.8f, 0.0f, 10.0f},
 		*/
 
-		{330, 0, 104.5f, 100.0f, 0.0f},
-		{330, 0, 104.5f, 100.0f, 0.0f},
-		{330, 0, 104.5f, 100.0f, 0.0f},
-		{330, 0, 104.5f, 100.0f, 0.0f},
-		{330, 0, 104.5f, 100.0f, 0.0f},
+		{310, 0, 104.5f, 100.0f, 0.002f},
+		{310, 0, 104.5f, 100.0f, 0.002f},
+		{310, 0, 104.5f, 100.0f, 0.002f},
+		{310, 0, 104.5f, 100.0f, 0.002f},
+		{310, 0, 104.5f, 100.0f, 0.002f},
 
 		{250, 0, 209.0f, 0.0f, 7.5f},
 		{250, 0, 209.0f, 0.0f, 7.5f},
@@ -222,11 +222,11 @@ constexpr SpeedConstant TURN_CONSTANTS[] =
 
 		//{160, 0, 578.0f, 0.0f, 57.8f},
 
-		{280, 0, 104.5f, 100.0f, 0.0f},
-		{280, 0, 104.5f, 100.0f, 0.0f},
-		{280, 0, 104.5f, 100.0f, 0.0f},
-		{280, 0, 104.5f, 100.0f, 0.0f},
-		{280, 0, 104.5f, 100.0f, 0.0f},
+		{300, 0, 104.5f, 100.0f, 0.002f},
+		{300, 0, 104.5f, 100.0f, 0.002f},
+		{300, 0, 104.5f, 100.0f, 0.002f},
+		{300, 0, 104.5f, 100.0f, 0.002f},
+		{300, 0, 104.5f, 100.0f, 0.002f},
 
 		{200, 0, 240.0f, 0.0f, 2.5f},
 		{200, 0, 240.0f, 0.0f, 5.0f},
@@ -357,7 +357,7 @@ SpeedControl1::SpeedControl1(Car *car)
 		  m_mode(0), m_straight_mode_delay(0),
 		  m_is_startup(true)
 {
-	m_pid.SetILimit(3000);
+	m_pid.SetILimit(I_LIMIT);
 }
 
 void SpeedControl1::OnFinishWarmUp()
@@ -416,8 +416,8 @@ void SpeedControl1::Control()
 		if (power < 0)
 		{
 			++m_reverse_count;
-			if (power >= -3500
-					&& m_reverse_count < (m_pid.GetSetpoint() >> 4))
+			if (power >= -2000
+					&& m_reverse_count < (m_pid.GetSetpoint() >> 3))
 			{
 				power = 0;
 			}

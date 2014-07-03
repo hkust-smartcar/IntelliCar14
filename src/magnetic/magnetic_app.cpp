@@ -136,14 +136,19 @@ void MagneticApp::StpOffsetGet()
 {
 DirectionControl();
 float i=temp;
+DELAY_MS(50);
 DirectionControl();
 float j=temp;
+DELAY_MS(50);
 DirectionControl();
 float k=temp;
+DELAY_MS(50);
 DirectionControl();
 float l=temp;
+DELAY_MS(50);
 DirectionControl();
 float m=temp;
+DELAY_MS(50);
 DirectionControl();
 float n=temp;
 DELTA_VALUE_OFFSET=(i+j+k+l+m+n)/6.0f;
@@ -159,28 +164,28 @@ void MagneticApp::DirectionControl()
 			//m_MagneticSenry_filter=libutil::KalmanFilter(9000.0f, 485637.0f,sen_ry_pred,1.0f);
 			m_MagneticSenry_filter=libutil::KalmanFilter(1800000000.0f, 31873.5649f,sen_ry_pred,1.0f);
 			LEFT_SENSOR_VALUE_X_filter = m_MagneticSenlx_filter.Filter(adc_once(ADC0_SE10,ADC_16bit)/1.9);
-			LEFT_SENSOR_VALUE_Y_filter = m_MagneticSenly_filter.Filter((adc_once(ADC1_SE4a,ADC_16bit))*1.59999996);
+			LEFT_SENSOR_VALUE_Y_filter = m_MagneticSenly_filter.Filter((adc_once(ADC1_SE4a,ADC_16bit)));
 			RIGHT_SENSOR_VALUE_X_filter = m_MagneticSenrx_filter.Filter((adc_once(ADC0_SE14,ADC_16bit)/1.45)-1000);
-			RIGHT_SENSOR_VALUE_Y_filter = m_MagneticSenry_filter.Filter(adc_once(ADC0_SE17,ADC_16bit)*1.5);
+			RIGHT_SENSOR_VALUE_Y_filter = m_MagneticSenry_filter.Filter(adc_once(ADC0_SE17,ADC_16bit));
 			sen_lx_pred = LEFT_SENSOR_VALUE_X_filter;
 			sen_ly_pred = LEFT_SENSOR_VALUE_Y_filter;
 			sen_rx_pred = RIGHT_SENSOR_VALUE_X_filter;
 			sen_ly_pred = RIGHT_SENSOR_VALUE_Y_filter;
 			//if (RIGHT_SENSOR_VALUE_Y<8500)(RIGHT_SENSOR_VALUE_Y=RIGHT_SENSOR_VALUE_Y/8);
 			//if (RIGHT_SENSOR_VALUE_Y <9500&&RIGHT_SENSOR_VALUE_Y >4000)(RIGHT_SENSOR_VALUE_Y=RIGHT_SENSOR_VALUE_Y/2.89);
-			if (RIGHT_SENSOR_VALUE_Y_filter >19500.0f)(RIGHT_SENSOR_VALUE_Y_filter=RIGHT_SENSOR_VALUE_Y_filter/2.625f);
-			if (LEFT_SENSOR_VALUE_Y_filter >19500.0f)(LEFT_SENSOR_VALUE_Y_filter=LEFT_SENSOR_VALUE_Y_filter/2.625f);
+			//if (RIGHT_SENSOR_VALUE_Y_filter >19500.0f)(RIGHT_SENSOR_VALUE_Y_filter=RIGHT_SENSOR_VALUE_Y_filter/2.625f);
+			//if (LEFT_SENSOR_VALUE_Y_filter >19500.0f)(LEFT_SENSOR_VALUE_Y_filter=LEFT_SENSOR_VALUE_Y_filter/2.21052631579f);
 			//LEFT_SENSOR_VALUE_X= (round((LEFT_SENSOR_VALUE_X)/150))*150;
 			//RIGHT_SENSOR_VALUE_X= (round(RIGHT_SENSOR_VALUE_X/150))*150;
-			LEFT_FINAL=(((LEFT_SENSOR_VALUE_Y_filter)*(LEFT_SENSOR_VALUE_Y_filter))+LEFT_SENSOR_VALUE_X_filter*LEFT_SENSOR_VALUE_X_filter)/10000;
+			LEFT_FINAL=(((LEFT_SENSOR_VALUE_Y_filter-10000)*(LEFT_SENSOR_VALUE_Y_filter-10000))+LEFT_SENSOR_VALUE_X_filter*LEFT_SENSOR_VALUE_X_filter)/10000;
 			LEFT_FINAL=sqrt(LEFT_FINAL)*100;
-			RIGHT_FINAL=(((RIGHT_SENSOR_VALUE_Y_filter)*(RIGHT_SENSOR_VALUE_Y_filter))+RIGHT_SENSOR_VALUE_X_filter*RIGHT_SENSOR_VALUE_X_filter)/10000;
+			RIGHT_FINAL=(((RIGHT_SENSOR_VALUE_Y_filter-10000)*(RIGHT_SENSOR_VALUE_Y_filter-10000))+RIGHT_SENSOR_VALUE_X_filter*RIGHT_SENSOR_VALUE_X_filter)/10000;
 			RIGHT_FINAL=sqrt(RIGHT_FINAL)*100;
 			//RIGHT_SENSOR_VALUE_BACK=(round((RIGHT_SENSOR_VALUE_BACK)/250))*250;
 			//theta= atan(MID_SENSOR_VALUE/(LEFT_SENSOR_VALUE-2120));
 			//LEFT_SENSOR_VALUE=(LEFT_SENSOR_VALUE+2120)*cos(atan(MID_SENSOR_VALUE/(LEFT_SENSOR_VALUE+2120)));
 			//RIGHT_SENSOR_VALUE=RIGHT_SENSOR_VALUE*cos(atan((RIGHT_SENSOR_VALUE)/MID_SENSOR_VALUE));
-			temp=(LEFT_FINAL - RIGHT_FINAL)+DELTA_VALUE_OFFSET;
+			temp=(RIGHT_FINAL-LEFT_FINAL)-DELTA_VALUE_OFFSET;
 			DELTA_SENSOR_VALUE =20000*(float)temp/(LEFT_FINAL + RIGHT_FINAL);
 			//printf("%f,%f\n",LEFT_FINAL,RIGHT_FINAL);
 			//LOG_W("%d,%d",DELTA_SENSOR_VALUE,RIGHT_FINAL);
@@ -198,7 +203,7 @@ void MagneticApp::CaluServoPercentage()
 	const Clock::ClockInt time_diff = Clock::TimeDiff(time, prev_time);
 	//m_car.LcdSetRow(4);
 	//m_car.LcdPrintString(libutil::String::Format("timediff: %d\n", time_diff).c_str(), 0xFFFF);
-	pos_kp=1.45, pos_kd=1.646/5;//0.3768/1000000;
+	pos_kp=0.9, pos_kd=1.646/7;//0.3768/1000000;
 	if (LEFT_FINAL >9500.0f && RIGHT_FINAL>9500.0f&&DELTA_SENSOR_VALUE<3000.0f&&DELTA_SENSOR_VALUE>-3000.0f) pos_kp=pos_kp/5,pos_kd=pos_kd*2/5 ;
 	//if(DELTA_SENSOR_VALUE>0)(DELTA_SENSOR_VALUE=DELTA_SENSOR_VALUE*0.83333);
 	//if (slope >200) (slope=200);
@@ -212,8 +217,8 @@ void MagneticApp::CaluServoPercentage()
 		(DELTA_SENSOR_VALUE=0);
 	if (DELTA_SENSOR_VALUE_ADJ>134)
 		(DELTA_SENSOR_VALUE_ADJ =134);
-	if (DELTA_SENSOR_VALUE_ADJ <-134)
-		(DELTA_SENSOR_VALUE_ADJ =-134);
+	if (DELTA_SENSOR_VALUE_ADJ <-120)
+		(DELTA_SENSOR_VALUE_ADJ =-120);
 	//if(LEFT_SENSOR_VALUE_Y>1000&&DELTA_SENSOR_VALUE<1500&&DELTA_SENSOR_VALUE>-1500)
 		//DELTA_SENSOR_VALUE_ADJ=DELTA_SENSOR_VALUE_ADJ_prev;
 	//LOG_W("%d",DELTA_SENSOR_VALUE_ADJ);
@@ -287,7 +292,7 @@ void MagneticApp::SpdCtrlpass() //encoder + speed control pid
 void MagneticApp::Run()
 {
 	DELAY_MS(500);
-	StpOffsetGet();
+	//StpOffsetGet();
 	InitAll();
 	LEFT_SENSOR_VALUE_X = adc_once(ADC0_SE10,ADC_16bit);
 	RIGHT_SENSOR_VALUE_X = adc_once(ADC0_SE14,ADC_16bit);
@@ -300,23 +305,23 @@ if (LEFT_SENSOR_VALUE_X>3000&&RIGHT_SENSOR_VALUE_X>3000) (intrack=true);
 	EnableIsr(PIT3_VECTORn);*/
 	DELAY_MS(1500);
 //intrack==
-		while (true)
+		while (intrack==true)
 	{
 		InitAll();
 		DirectionControl();
 		DELAY_MS(10);
 		CaluServoPercentage();
 		m_car.SetTurning(DELTA_SENSOR_VALUE_ADJ);
-		//printf("%d,%d,%d,%d\n",LEFT_SENSOR_VALUE_X,LEFT_SENSOR_VALUE_Y,RIGHT_SENSOR_VALUE_X,RIGHT_SENSOR_VALUE_Y);
-		//SpdCtrlpass();
+		printf("%f,%f,%f,%f\n",LEFT_SENSOR_VALUE_X_filter,LEFT_SENSOR_VALUE_Y_filter,RIGHT_SENSOR_VALUE_X_filter,RIGHT_SENSOR_VALUE_Y_filter);
+		SpdCtrlpass();
 		//if ((DELTA_SENSOR_VALUE_ADJ_prev>0&&DELTA_SENSOR_VALUE_ADJ>0)||(DELTA_SENSOR_VALUE_ADJ_prev<0&&DELTA_SENSOR_VALUE_ADJ<0))(mean_delta=(DELTA_SENSOR_VALUE_ADJ_prev+DELTA_SENSOR_VALUE_ADJ))/2;
 		////printf("%d,%d\n",LEFT_FINAL,RIGHT_FINAL);
 		//DELTA_SENSOR_VALUE_ADJ_prev=DELTA_SENSOR_VALUE_ADJ;
 
 		m_car.LcdSetRow(5);
-		m_car.LcdPrintString(libutil::String::Format("%f\n",LEFT_SENSOR_VALUE_Y_filter).c_str(), 0xFFFF);
+		m_car.LcdPrintString(libutil::String::Format("%f\n",LEFT_SENSOR_VALUE_Y_filter-10000).c_str(), 0xFFFF);
 		m_car.LcdSetRow(7);
-		m_car.LcdPrintString(libutil::String::Format("%f\n",RIGHT_SENSOR_VALUE_Y_filter).c_str(), 0xFFFF);
+		m_car.LcdPrintString(libutil::String::Format("%f\n",RIGHT_SENSOR_VALUE_Y_filter-10000).c_str(), 0xFFFF);
 
 
 		//DELAY_MS(300);

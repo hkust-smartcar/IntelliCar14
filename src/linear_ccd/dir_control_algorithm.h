@@ -67,6 +67,11 @@ public:
 		return m_curr_right_edge;
 	}
 
+	int32_t GetSetpoint() const
+	{
+		return m_servo_pid.GetSetpoint();
+	}
+
 	float GetP() const
 	{
 		return m_servo_pid.GetP();

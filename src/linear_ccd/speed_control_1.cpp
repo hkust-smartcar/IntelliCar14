@@ -99,11 +99,11 @@ constexpr SpeedConstant CONSTANTS[] =
 		{290, 0, 26.8f, 0.0f, 10.0f},
 		*/
 
-		{310, 0, 104.5f, 100.0f, 0.002f},
-		{310, 0, 104.5f, 100.0f, 0.002f},
-		{310, 0, 104.5f, 100.0f, 0.002f},
-		{310, 0, 104.5f, 100.0f, 0.002f},
-		{310, 0, 104.5f, 100.0f, 0.002f},
+		{320, 0, 104.5f, 100.0f, 0.002f},
+		{320, 0, 104.5f, 100.0f, 0.002f},
+		{320, 0, 104.5f, 100.0f, 0.002f},
+		{320, 0, 104.5f, 100.0f, 0.002f},
+		{320, 0, 104.5f, 100.0f, 0.002f},
 
 		{250, 0, 209.0f, 0.0f, 7.5f},
 		{250, 0, 209.0f, 0.0f, 7.5f},
@@ -204,6 +204,9 @@ constexpr SpeedConstant CONSTANTS[] =
 		// Set 8
 		// P only
 		//{250, 0, 209.0f, 0.0f, 0.0f},
+
+		// Set 9
+		{310, 0, 104.5f, 100.0f, 0.002f},
 };
 
 //#define TURN_CONSTANTS CONSTANTS
@@ -222,11 +225,11 @@ constexpr SpeedConstant TURN_CONSTANTS[] =
 
 		//{160, 0, 578.0f, 0.0f, 57.8f},
 
-		{300, 0, 104.5f, 100.0f, 0.002f},
-		{300, 0, 104.5f, 100.0f, 0.002f},
-		{300, 0, 104.5f, 100.0f, 0.002f},
-		{300, 0, 104.5f, 100.0f, 0.002f},
-		{300, 0, 104.5f, 100.0f, 0.002f},
+		{310, 0, 104.5f, 100.0f, 0.002f},
+		{310, 0, 104.5f, 100.0f, 0.002f},
+		{310, 0, 104.5f, 100.0f, 0.002f},
+		{310, 0, 104.5f, 100.0f, 0.002f},
+		{310, 0, 104.5f, 100.0f, 0.002f},
 
 		{200, 0, 240.0f, 0.0f, 2.5f},
 		{200, 0, 240.0f, 0.0f, 5.0f},
@@ -311,6 +314,9 @@ constexpr SpeedConstant TURN_CONSTANTS[] =
 
 		// Set 7
 		{270, 0, 578.0f, 0.0f, 47.8f},
+
+		// Set 9
+		{300, 0, 104.5f, 100.0f, 0.002f},
 };
 
 //#define PRE_TURN_CONSTANTS CONSTANTS
@@ -318,11 +324,11 @@ constexpr SpeedConstant PRE_TURN_CONSTANTS[] =
 {
 		{0, 0, 0.0f, 0.0f, 0.0f},
 
-		{260, 0, 104.5f, 100.0f, 0.0f},
-		{260, 0, 104.5f, 100.0f, 0.0f},
-		{260, 0, 104.5f, 100.0f, 0.0f},
-		{260, 0, 104.5f, 100.0f, 0.0f},
-		{260, 0, 104.5f, 100.0f, 0.0f},
+		{280, 0, 104.5f, 100.0f, 0.0f},
+		{280, 0, 104.5f, 100.0f, 0.0f},
+		{280, 0, 104.5f, 100.0f, 0.0f},
+		{280, 0, 104.5f, 100.0f, 0.0f},
+		{280, 0, 104.5f, 100.0f, 0.0f},
 
 		{250, 0, 209.0f, 0.0f, 7.5f},
 		{250, 0, 209.0f, 0.0f, 7.5f},
@@ -419,7 +425,14 @@ void SpeedControl1::Control()
 			if (power >= -2000
 					&& m_reverse_count < (m_pid.GetSetpoint() >> 3))
 			{
-				power = 0;
+				if (TURN_CONSTANTS[m_mode].encoder == CONSTANTS[m_mode].encoder)
+				{
+					power = 0;
+				}
+				else if (m_car->GetTurning() <= Config::GetTurnThreshold())
+				{
+					power = 0;
+				}
 			}
 		}
 		else
@@ -438,7 +451,7 @@ void SpeedControl1::Control()
 
 #ifdef DEBUG
 	// Send speed PID through UART1
-	//car->UartSendStr(libutil::String::Format("%u\n", power).c_str());
+	//car->UartSendStr(libutil::String::Format("%u\n", power));
 #endif
 }
 

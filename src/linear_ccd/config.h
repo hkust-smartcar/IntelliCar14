@@ -16,6 +16,7 @@ public:
 		CCD_PAGE,
 		DATA_PAGE,
 		PROFILE_PAGE,
+		CALIBRATE_PAGE,
 
 		LCD_SCREEN_STATE_SIZE,
 	};
@@ -47,12 +48,12 @@ public:
 
 	static constexpr int GetCcdValidPixel()
 	{
-		return 128 - 10;
+		return 128 - 20;
 	}
 
 	static constexpr int GetCcdValidPixelOffset()
 	{
-		return 5;
+		return 10;
 	}
 
 private:

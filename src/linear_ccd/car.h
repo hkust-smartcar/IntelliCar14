@@ -9,8 +9,11 @@
 #ifndef LINEAR_CCD_CAR_H_
 #define LINEAR_CCD_CAR_H_
 
-#include <bitset>
 #include <cstdint>
+
+#include <bitset>
+#include <string>
+#include <utility>
 
 #include <libsc/k60/button.h>
 #include <libsc/com/encoder.h>
@@ -139,6 +142,11 @@ public:
 		m_bt.SendStr(str);
 	}
 
+	void UartSendStr(const std::string &&str)
+	{
+		m_bt.SendStr(std::move(str));
+	}
+
 	void UartSendBuffer(const uint8_t *buf, const uint32_t len)
 	{
 		m_bt.SendBuffer(buf, len);
@@ -153,6 +161,11 @@ public:
 			const uint8_t w, const uint8_t h, const uint8_t *pixel)
 	{
 		m_lcd.DrawGrayscalePixelBuffer(x, y, w, h, pixel);
+	}
+
+	void LcdDrawPixel(const uint8_t x, const uint8_t y, const uint16_t pixel)
+	{
+		m_lcd.DrawPixel(x, y, pixel);
 	}
 
 	void LcdPrintString(const char *str, const uint16_t color)

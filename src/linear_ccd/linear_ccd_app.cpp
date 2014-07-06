@@ -13,7 +13,9 @@
 
 #include <cstdint>
 #include <cstdlib>
+
 #include <bitset>
+#include <string>
 
 #include <log.h>
 #include <MK60_dac.h>
@@ -38,7 +40,7 @@ using namespace libsc::k60;
 using namespace std;
 
 #define LED_FREQ 250
-#define SERVO_FREQ 3
+#define SERVO_FREQ 7
 #define SPEED_CTRL_FREQ 19
 #define JOYSTICK_FREQ 25
 
@@ -122,6 +124,7 @@ void LinearCcdApp::Run()
 
 void LinearCcdApp::InitialStage()
 {
+	iprintf("Initialize\n");
 	BeepManager::GetInstance(&m_car)->Beep(100);
 
 #ifdef LINEAR_CCD_2014
@@ -129,8 +132,8 @@ void LinearCcdApp::InitialStage()
 	//dac_out(DAC0, 0x520); 21freq
 	//dac_out(DAC0, 0x310);
 	//dac_out(DAC0, 0x260);
-	dac_out(DAC0, 0x150);
-	dac_init(DAC1);
+	dac_out(DAC0, 0x260);
+	//dac_init(DAC1);
 	//dac_out(DAC1, 0x240);
 	//dac_out(DAC1, 0x310);
 
@@ -192,8 +195,23 @@ void LinearCcdApp::InitialStage()
 
 #endif
 
-	m_dir_control[0].SetMode(m_mode);
-	m_dir_control[1].SetMode(m_mode + 5);
+	if (m_mode == 0)
+	{
+		const bitset<5> &switches = m_car.GetSwitchState();
+		for (int i = 0; i < 5; ++i)
+		{
+			if (switches[i])
+			{
+				m_dir_control[0].SetMode(i + 1);
+				m_dir_control[1].SetMode(i + 1 + 5);
+			}
+		}
+	}
+	else
+	{
+		m_dir_control[0].SetMode(m_mode);
+		m_dir_control[1].SetMode(m_mode + 5);
+	}
 	m_speed_control.SetMode(m_mode);
 
 	// Reset encoder count
@@ -213,6 +231,7 @@ void LinearCcdApp::InitialStage()
 
 	m_start = SystemTimer::Time();
 	BeepManager::GetInstance(&m_car)->Beep(100);
+	iprintf("Start\n");
 }
 
 void LinearCcdApp::LedPass()
@@ -326,6 +345,11 @@ void LinearCcdApp::ServoPass()
 					m_dir_control[0].GetCurrRightEdge()).c_str(), 0xFFFF);
 		}
 #endif
+#ifdef DEBUG_PRINT_EDGE
+		m_car.UartSendStr(libutil::String::Format("e: %3d %3d\n",
+				m_dir_control[0].GetCurrLeftEdge(),
+				m_dir_control[0].GetCurrRightEdge()));
+#endif
 #ifdef DEBUG_BEEP_CCD_FILL
 		if (m_dir_control[0].IsAllBlack() || m_dir_control[0].IsAllWhite())
 		{
@@ -357,7 +381,8 @@ void LinearCcdApp::ServoPass()
 		static int print_error_pid_delay = 0;
 		if (++print_error_pid_delay >= 9)
 		{
-			printf("%d %.3f %.3f %d\n", 64 - m_dir_control[0].GetMid(),
+			printf("%d %ld %.3f %.3f %d\n", 64 - m_dir_control[0].GetMid(),
+					m_dir_control[0].GetSetpoint() - m_dir_control[0].GetMid(),
 					m_dir_control[0].GetP(), m_dir_control[0].GetD(), -turning);
 			print_error_pid_delay = 0;
 		}
@@ -395,16 +420,31 @@ void LinearCcdApp::ServoPass()
 			static const int MID_Y = libsc::Lcd::H / 2;
 			const uint8_t buf_size = LinearCcd::SENSOR_W;
 			uint8_t buf[buf_size] = {};
+			/*
 			for (int i = 0; i < LinearCcd::SENSOR_W; ++i)
 			{
 				buf[i] = ccd_data_up[i] ? 0xFF : 0x00;
 			}
 			m_car.LcdDrawGrayscalePixelBuffer(0, y, buf_size, 1, buf);
+			if (m_dir_control[1].GetMid() >= 0
+					&& m_dir_control[1].GetMid() < LinearCcd::SENSOR_W)
+			{
+				m_car.LcdDrawPixel(m_dir_control[1].GetMid(), y + MID_Y,
+						libutil::GetRgb565(0xFF, 0, 0x33));
+			}
+			*/
 			for (int i = 0; i < LinearCcd::SENSOR_W; ++i)
 			{
 				buf[i] = ccd_data_down[i] ? 0xFF : 0x00;
 			}
 			m_car.LcdDrawGrayscalePixelBuffer(0, y + MID_Y, buf_size, 1, buf);
+			if (m_dir_control[0].GetMid() >= 0
+					&& m_dir_control[0].GetMid() < LinearCcd::SENSOR_W)
+			{
+				m_car.LcdDrawPixel(m_dir_control[0].GetMid(), y + MID_Y,
+						libutil::GetRgb565(0xE5, 0x33, 0xB5));
+			}
+
 			if (y++ >= MID_Y)
 			{
 				y = 0;
@@ -414,13 +454,14 @@ void LinearCcdApp::ServoPass()
 
 #ifdef DEBUG_PRINT_CCD
 		// Send CCD data through UART
-		char str[LinearCcd::SENSOR_W];
+		string str;
+		str.reserve(LinearCcd::SENSOR_W + 1);
 		for (int i = 3; i < LinearCcd::SENSOR_W - 3; ++i)
 		{
-			str[i] = ccd_data[i] ? '#' : '.';
+			str += ccd_data[i] ? '#' : '.';
 		}
-		m_car.UartSendBuffer((uint8_t*)(str + 3), LinearCcd::SENSOR_W - 6);
-		m_car.UartSendStr("\n");
+		str += '\n';
+		m_car.UartSendStr(std::move(str));
 #endif
 
 #ifdef DEBUG_PRINT_INTERVAL
@@ -552,7 +593,7 @@ int LinearCcdApp::FwriteHandler(int, char *ptr, int len)
 {
 	if (m_instance)
 	{
-		m_instance->m_car.UartSendBuffer((const uint8_t*)ptr, len);
+		m_instance->m_car.UartSendBuffer((const Byte*)ptr, len);
 	}
 	return len;
 }
@@ -567,6 +608,8 @@ void LinearCcdApp::HardFaultHandler()
 			m_instance->m_car.SwitchLed(i, true);
 		}
 	}
+	while(true)
+	{}
 }
 
 void LinearCcdApp::DetectStopLine()

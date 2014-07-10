@@ -46,8 +46,9 @@ private:
 	void CaluServoPercentage();
 	void DirectionControl();
 	void SpdCtrlpass();
-	void StpOffsetGet();
-
+	uint16 Sensor_Average(int);
+	float sensor_offset();
+	uint16 CalcOffset(uint16);
 	libutil::KalmanFilter m_MagneticSenlx_filter;
 	libutil::KalmanFilter m_MagneticSenly_filter;
 	libutil::KalmanFilter m_MagneticSenrx_filter;

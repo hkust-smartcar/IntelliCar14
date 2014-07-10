@@ -5,7 +5,7 @@
  * Copyright (c) 2014 HKUST SmartCar Team
  */
 
-#include <libsc/k60/system_timer.h>
+#include <libsc/k60/system.h>
 #include <libsc/k60/timer.h>
 
 #include "linear_ccd/bt_controller.h"
@@ -32,13 +32,13 @@ bool BtController::Control()
 			m_is_activated = true;
 			m_speed_control.OnFinishWarmUp();
 		}
-		m_prev = SystemTimer::Time();
+		m_prev = System::Time();
 		return true;
 	}
 	else if (m_is_activated)
 	{
 		SpeedControlPass();
-		if (Timer::TimeDiff(SystemTimer::Time(), m_prev) > 1000)
+		if (Timer::TimeDiff(System::Time(), m_prev) > 1000)
 		{
 			m_is_activated = false;
 			m_car->StopMotor();
@@ -105,7 +105,7 @@ bool BtController::HandleInput(const char ch)
 
 void BtController::SpeedControlPass()
 {
-	const Timer::TimerInt time = SystemTimer::Time();
+	const Timer::TimerInt time = System::Time();
 	if (Timer::TimeDiff(time, m_prev_speed_control_time) >= SPEED_CTRL_FREQ)
 	{
 		m_prev_speed_control_time = time;

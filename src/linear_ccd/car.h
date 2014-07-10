@@ -23,12 +23,15 @@
 #include <libsc/k60/led.h>
 #include <libsc/k60/light_sensor.h>
 #include <libsc/k60/linear_ccd.h>
-#include <libsc/com/motor.h>
+#include <libsc/k60/motor.h>
 #include <libsc/com/mpu6050.h>
 #include <libsc/k60/simple_buzzer.h>
 #include <libsc/k60/switch.h>
-#include <libsc/com/trs_d05.h>
+#include <libsc/k60/trs_d05.h>
 #include <libsc/k60/uart_device.h>
+#include <libutil/tunable_int_manager.h>
+
+#include "linear_ccd/beep_manager.h"
 
 namespace linear_ccd
 {
@@ -39,36 +42,16 @@ public:
 	Car();
 
 	/**
-	 * Start the wheel motor
+	 * Set the power of the motor, a negative power will drive the car backwards
 	 *
-	 * @param power
-	 * @see SetMotorPower()
+	 * @param power Power scale in [-1000, 1000]
 	 */
-	void StartMotor(const int16_t power)
-	{
-		SetMotorPower(power);
-	}
+	void SetMotorPower(const int16_t power);
 
 	void StopMotor()
 	{
 		SetMotorPower(0);
 	}
-
-	/**
-	 * Set the power of the motor, a negative power will drive the car backwards
-	 *
-	 * @param power Power scale in [-10000, 10000]
-	 */
-	void SetMotorPower(const int16_t power);
-
-	void AddMotorPower(const uint16_t factor)
-	{
-		m_motor.AddPower(factor);
-	}
-
-	void AddMotorPowerTil(const uint16_t factor, const uint16_t max);
-	void DropMotorPower(const uint16_t factor);
-	void DropMotorPowerTil(const uint16_t factor, const uint16_t min);
 
 	/**
 	 * Set the turning percentage, negative input means turning left
@@ -142,12 +125,17 @@ public:
 		m_bt.SendStr(str);
 	}
 
-	void UartSendStr(const std::string &&str)
+	void UartSendStrLiteral(const char *str)
+	{
+		m_bt.SendStrLiteral(str);
+	}
+
+	void UartSendStr(std::string &&str)
 	{
 		m_bt.SendStr(std::move(str));
 	}
 
-	void UartSendBuffer(const uint8_t *buf, const uint32_t len)
+	void UartSendBuffer(const Byte *buf, const size_t len)
 	{
 		m_bt.SendBuffer(buf, len);
 	}
@@ -155,6 +143,11 @@ public:
 	bool UartPeekChar(char *out_ch)
 	{
 		return m_bt.PeekChar(out_ch);
+	}
+
+	void SetUartLoopMode(const bool flag)
+	{
+		m_bt.SetLoopMode(flag);
 	}
 
 	void LcdDrawGrayscalePixelBuffer(const uint8_t x, const uint8_t y,
@@ -173,16 +166,31 @@ public:
 		m_lcd_console.PrintString(str, color);
 	}
 
-	void LcdClear(const uint16_t)
+	void LcdPrintString(const char *str, const uint16_t color,
+			const uint16_t bg_color)
+	{
+		m_lcd_console.PrintString(str, color, bg_color);
+	}
+
+	void LcdClear()
 	{
 		m_lcd_console.Clear(false);
-		// Skip clearing the screen as it's too slow
-		//m_lcd.Clear(color);
+	}
+
+	void LcdClear(const uint16_t bg_color)
+	{
+		m_lcd_console.Clear(false);
+		m_lcd.Clear(bg_color);
 	}
 
 	void LcdSetRow(const uint8_t row)
 	{
 		m_lcd_console.SetCursorRow(row);
+	}
+
+	BeepManager* GetBeepManager()
+	{
+		return BeepManager::GetInstance(&m_buzzer);
 	}
 
 	void SetBuzzerBeep(const bool is_beep)
@@ -207,6 +215,12 @@ public:
 	}
 
 	int16_t GetTurning() const;
+
+	template<uint8_t size>
+	libutil::TunableIntManager<size>* GetTunableIntManager()
+	{
+		return libutil::TunableIntManager<size>::GetInstance(&m_bt);
+	}
 
 	/**
 	 * Return the state of all buttons. The bit is set if it's currently down
@@ -289,10 +303,10 @@ private:
 	libsc::k60::Led m_leds[4];
 	libsc::k60::LightSensor m_light_sensors[2];
 	libsc::k60::LinearCcd m_ccds[2];
-	libsc::Motor m_motor;
+	libsc::k60::Motor m_motor;
 	libsc::k60::SimpleBuzzer m_buzzer;
 	libsc::k60::Switch m_switches[5];
-	libsc::TrsD05 m_servo;
+	libsc::k60::TrsD05 m_servo;
 	libsc::k60::UartDevice m_bt;
 };
 

@@ -8,7 +8,7 @@
 
 #include <cstdint>
 
-#include <libsc/k60/system_timer.h>
+#include <libsc/k60/system.h>
 #include <libsc/k60/timer.h>
 #include <libutil/misc.h>
 #include <libutil/pid_controller.h>
@@ -99,11 +99,11 @@ constexpr SpeedConstant CONSTANTS[] =
 		{290, 0, 26.8f, 0.0f, 10.0f},
 		*/
 
-		{320, 0, 104.5f, 100.0f, 0.002f},
-		{320, 0, 104.5f, 100.0f, 0.002f},
-		{320, 0, 104.5f, 100.0f, 0.002f},
-		{320, 0, 104.5f, 100.0f, 0.002f},
-		{320, 0, 104.5f, 100.0f, 0.002f},
+		{340, 0, 104.5f, 100.0f, 0.01f},
+		{340, 0, 104.5f, 100.0f, 0.01f},
+		{340, 0, 104.5f, 100.0f, 0.01f},
+		{340, 0, 104.5f, 100.0f, 0.01f},
+		{340, 0, 104.5f, 100.0f, 0.01f},
 
 		{250, 0, 209.0f, 0.0f, 7.5f},
 		{250, 0, 209.0f, 0.0f, 7.5f},
@@ -225,11 +225,11 @@ constexpr SpeedConstant TURN_CONSTANTS[] =
 
 		//{160, 0, 578.0f, 0.0f, 57.8f},
 
-		{310, 0, 104.5f, 100.0f, 0.002f},
-		{310, 0, 104.5f, 100.0f, 0.002f},
-		{310, 0, 104.5f, 100.0f, 0.002f},
-		{310, 0, 104.5f, 100.0f, 0.002f},
-		{310, 0, 104.5f, 100.0f, 0.002f},
+		{330, 0, 104.5f, 100.0f, 0.01f},
+		{330, 0, 104.5f, 100.0f, 0.01f},
+		{330, 0, 104.5f, 100.0f, 0.01f},
+		{330, 0, 104.5f, 100.0f, 0.01f},
+		{330, 0, 104.5f, 100.0f, 0.01f},
 
 		{200, 0, 240.0f, 0.0f, 2.5f},
 		{200, 0, 240.0f, 0.0f, 5.0f},
@@ -358,16 +358,21 @@ constexpr SpeedConstant PRE_TURN_CONSTANTS[] =
 }
 
 SpeedControl1::SpeedControl1(Car *car)
-		: m_car(car), m_pid(CONSTANTS[0].encoder, CONSTANTS[0].kp,
-				  CONSTANTS[0].ki, CONSTANTS[0].kd),
-		  m_mode(0), m_straight_mode_delay(0),
-		  m_is_startup(true)
+		: m_car(car),
+		  m_pid(CONSTANTS[0].encoder, CONSTANTS[0].kp, CONSTANTS[0].ki,
+				  CONSTANTS[0].kd),
+		  m_mode(0),
+		  m_straight_mode_delay(0),
+		  m_start_time(0),
+		  m_is_startup(true),
+		  m_reverse_count(0)
 {
 	m_pid.SetILimit(I_LIMIT);
 }
 
 void SpeedControl1::OnFinishWarmUp()
 {
+	m_start_time = System::Time();
 	m_pid.Restart();
 }
 
@@ -375,7 +380,7 @@ void SpeedControl1::Control()
 {
 	m_car->UpdateEncoder();
 	const int16_t count = m_car->GetEncoderCount();
-	const Timer::TimerInt time = SystemTimer::Time();
+	const Timer::TimerInt time = System::Time();
 #ifdef DEBUG_PRINT_ENCODER
 	iprintf("%d\n", count);
 #endif
@@ -398,11 +403,11 @@ void SpeedControl1::Control()
 	//iprintf("%d, %d\n", count, power);
 
 	// Prevent the output going crazy due to initially idle encoder
-	if (m_is_startup && time < 250 + LinearCcdApp::INITIAL_DELAY)
+	if (m_is_startup && time < 250 + m_start_time)
 	{
 		const int clamp_power = m_car->GetMotorPower()
 				+ libutil::Clamp<int>(-400, power - m_car->GetMotorPower(), 400);
-		m_car->SetMotorPower(clamp_power);
+		m_car->SetMotorPower(clamp_power / 10);
 	}
 	else
 	{
@@ -422,7 +427,7 @@ void SpeedControl1::Control()
 		if (power < 0)
 		{
 			++m_reverse_count;
-			if (power >= -2000
+			if (power >= -2500
 					&& m_reverse_count < (m_pid.GetSetpoint() >> 3))
 			{
 				if (TURN_CONSTANTS[m_mode].encoder == CONSTANTS[m_mode].encoder)
@@ -446,7 +451,7 @@ void SpeedControl1::Control()
 		}
 #endif
 		m_car->SetMotorPower(libutil::Clamp<int>(-MOTOR_MAX_PWM, power,
-				MOTOR_MAX_PWM));
+				MOTOR_MAX_PWM) / 10);
 	}
 
 #ifdef DEBUG

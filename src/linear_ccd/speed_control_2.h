@@ -1,13 +1,13 @@
 /*
- * speed_control_1.h
- * Speed controller Gen1, using PID
+ * speed_control_2.h
+ * Speed controller Gen2, using PID
  *
  * Author: Louis Mo, Ming Tsang, Spartey Chen
  * Copyright (c) 2014 HKUST SmartCar Team
  */
 
-#ifndef LINEAR_CCD_SPEED_CONTROL_1_H_
-#define LINEAR_CCD_SPEED_CONTROL_1_H_
+#ifndef LINEAR_CCD_SPEED_CONTROL_2_H_
+#define LINEAR_CCD_SPEED_CONTROL_2_H_
 
 #include <cstdint>
 
@@ -28,25 +28,36 @@ class Car;
 namespace linear_ccd
 {
 
-class SpeedControl1 : public SpeedControlStrategy
+class SpeedControl2 : public SpeedControlStrategy
 {
 public:
-	explicit SpeedControl1(Car *car);
+	struct Parameter
+	{
+		int sp = 0;
+		float kp = 0;
+		float ki = 0;
+		float kd = 0;
+		int turn_sp = 0;
+	};
+
+	explicit SpeedControl2(Car *const car);
+	SpeedControl2(Car *const car, const Parameter &parameter);
+
+	void SetParameter(const Parameter &parameter);
+	const Parameter& GetParameter() const
+	{
+		return m_parameter;
+	}
 
 	void OnFinishWarmUp() override;
 	void Control() override;
 
-	void SetMode(const Uint mode)
-	{
-		m_mode = mode;
-	}
-
-	void SetTurnHint(const TurnHint hint);
+	void SetTurnHint(const TurnHint hint) override;
 
 private:
-	Car *m_car;
+	Car *const m_car;
+	Parameter m_parameter;
 	libutil::PidController<int32_t, int32_t> m_pid;
-	uint8_t m_mode;
 	uint8_t m_straight_mode_delay;
 
 	libsc::k60::Timer::TimerInt m_start_time;

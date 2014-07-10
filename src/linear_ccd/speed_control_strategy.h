@@ -31,7 +31,6 @@ public:
 
 	virtual void OnFinishWarmUp() = 0;
 	virtual void Control() = 0;
-	virtual void SetMode(const Uint mode) = 0;
 	virtual void SetTurnHint(const TurnHint hint) = 0;
 };
 

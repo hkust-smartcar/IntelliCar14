@@ -10,7 +10,15 @@
 
 #include <libsc/k60/timer.h>
 
-#include "linear_ccd/car.h"
+namespace libsc
+{
+namespace k60
+{
+
+class SimpleBuzzer;
+
+}
+}
 
 namespace linear_ccd
 {
@@ -18,7 +26,7 @@ namespace linear_ccd
 class BeepManager
 {
 public:
-	static BeepManager* GetInstance(Car *const car);
+	static BeepManager* GetInstance(libsc::k60::SimpleBuzzer *const buzzer);
 	static BeepManager* GetInstance()
 	{
 		return m_instance;
@@ -28,9 +36,9 @@ public:
 	void Process();
 
 private:
-	explicit BeepManager(Car *const car);
+	explicit BeepManager(libsc::k60::SimpleBuzzer *const buzzer);
 
-	Car *const m_car;
+	libsc::k60::SimpleBuzzer *const m_buzzer;
 	libsc::k60::Timer::TimerInt m_start;
 	libsc::k60::Timer::TimerInt m_duration;
 	bool m_is_beep;

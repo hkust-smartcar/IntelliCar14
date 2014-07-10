@@ -5,11 +5,11 @@
  * Copyright (c) 2014 HKUST SmartCar Team
  */
 
-#include <libsc/k60/system_timer.h>
+#include <libsc/k60/simple_buzzer.h>
+#include <libsc/k60/system.h>
 #include <libsc/k60/timer.h>
 
 #include "linear_ccd/beep_manager.h"
-#include "linear_ccd/car.h"
 
 using namespace libsc::k60;
 
@@ -18,24 +18,27 @@ namespace linear_ccd
 
 BeepManager *BeepManager::m_instance = nullptr;
 
-BeepManager::BeepManager(Car *const car)
-		: m_car(car), m_start(0), m_duration(0), m_is_beep(false)
+BeepManager::BeepManager(SimpleBuzzer *const buzzer)
+		: m_buzzer(buzzer),
+		  m_start(0),
+		  m_duration(0),
+		  m_is_beep(false)
 {}
 
-BeepManager* BeepManager::GetInstance(Car *const car)
+BeepManager* BeepManager::GetInstance(SimpleBuzzer *const buzzer)
 {
 	if (!m_instance)
 	{
-		m_instance = new BeepManager(car);
+		m_instance = new BeepManager(buzzer);
 	}
 	return m_instance;
 }
 
 void BeepManager::Beep(const Timer::TimerInt duration)
 {
-	m_car->SetBuzzerBeep(true);
+	m_buzzer->SetBeep(true);
 	m_duration = duration;
-	m_start = SystemTimer::Time();
+	m_start = System::Time();
 	m_is_beep = true;
 }
 
@@ -46,9 +49,9 @@ void BeepManager::Process()
 		return;
 	}
 
-	if (Timer::TimeDiff(SystemTimer::Time(), m_start) >= m_duration)
+	if (Timer::TimeDiff(System::Time(), m_start) >= m_duration)
 	{
-		m_car->SetBuzzerBeep(false);
+		m_buzzer->SetBeep(false);
 		m_is_beep = false;
 	}
 }

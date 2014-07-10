@@ -5,6 +5,8 @@
  * Copyright (c) 2014 HKUST SmartCar Team
  */
 
+#include <cstdint>
+
 namespace linear_ccd
 {
 
@@ -16,7 +18,6 @@ public:
 		CCD_PAGE,
 		DATA_PAGE,
 		PROFILE_PAGE,
-		CALIBRATE_PAGE,
 
 		LCD_SCREEN_STATE_SIZE,
 	};
@@ -41,9 +42,40 @@ public:
 		return GetInstance()->m_is_lcd_pause;
 	}
 
+	static constexpr int GetAutoStopTime()
+	{
+		return 17000;
+		//return 25000;
+	}
+
+	static constexpr int GetEmergencyStopDelay()
+	{
+		return 3;
+	}
+
+	static constexpr int GetLedInterval()
+	{
+		return 250;
+	}
+
+	static constexpr int GetSpeedInterval()
+	{
+		return 19;
+	}
+
 	static constexpr int GetTurnThreshold()
 	{
 		return 36;
+	}
+
+	static constexpr int GetTurnInterval()
+	{
+		return 7;
+	}
+
+	static constexpr int GetJoystickInterval()
+	{
+		return 25;
 	}
 
 	static constexpr int GetCcdValidPixel()
@@ -54,6 +86,24 @@ public:
 	static constexpr int GetCcdValidPixelOffset()
 	{
 		return 10;
+	}
+
+	static int GetCcdThreshold(const uint8_t id)
+	{
+		switch (id)
+		{
+		default:
+		case 0:
+			// 21ms
+			//return 0x520;
+			//return 0x310;
+			//return 0x260;
+			return 0x180;
+
+		//case 1:
+			//return 0x240;
+			//return 0x310;
+		}
 	}
 
 private:

@@ -17,18 +17,16 @@
 #include <libsc/k60/led.h>
 #include <libsc/k60/light_sensor.h>
 #include <libsc/k60/linear_ccd.h>
-#include <libsc/com/motor.h>
-#include <libsc/com/servo.h>
+#include <libsc/k60/motor.h>
+#include <libsc/k60/servo.h>
 #include <libsc/k60/switch.h>
 #include <libsc/k60/uart_device.h>
 #include <libutil/misc.h>
 
 #include "linear_ccd/car.h"
 
-//#define SERVO_MID_DEGREE 86
-//#define SERVO_AMPLITUDE 25
-#define SERVO_MID_DEGREE 86
-#define SERVO_AMPLITUDE 28
+#define SERVO_MID_DEGREE 820
+#define SERVO_AMPLITUDE 290
 #define SERVO_MAX_DEGREE (SERVO_MID_DEGREE + SERVO_AMPLITUDE)
 #define SERVO_MIN_DEGREE (SERVO_MID_DEGREE - SERVO_AMPLITUDE)
 
@@ -64,39 +62,17 @@ void Car::SetMotorDirection(const bool is_forward)
 
 void Car::SetMotorPower(const int16_t power)
 {
-	const uint16_t _power = libutil::Clamp<uint16_t>(0, abs(power), 10000);
+	const Uint power_ = libutil::Clamp<Uint>(0, abs(power), 10000);
 	SetMotorDirection((power >= 0));
-	m_motor.SetPower(_power);
-}
-
-void Car::AddMotorPowerTil(const uint16_t factor, const uint16_t max)
-{
-	const uint16_t curr_power = GetMotorPower();
-	if (curr_power < max)
-	{
-		SetMotorPower(libutil::Clamp<uint16_t>(0, curr_power + factor, max));
-	}
-}
-
-void Car::DropMotorPower(const uint16_t factor)
-{
-	m_motor.AddPower(-factor);
-}
-
-void Car::DropMotorPowerTil(const uint16_t factor, const uint16_t min)
-{
-	const uint16_t curr_power = GetMotorPower();
-	if (curr_power > min)
-	{
-		SetMotorPower(libutil::Clamp<uint16_t>(min, curr_power - factor, 1000));
-	}
+	m_motor.SetPower(power_);
 }
 
 void Car::SetTurning(const int16_t percentage)
 {
 	// Servo's rotation dir is opposite to our wheels
-	const int16_t _percentage = libutil::Clamp<int16_t>(-100, -percentage, 100);
-	m_servo.SetDegree(SERVO_MID_DEGREE + (_percentage * SERVO_AMPLITUDE / 100));
+	const int percentage_ = libutil::Clamp<int>(-100, -percentage, 100);
+	const int degree = SERVO_MID_DEGREE + (percentage_ * SERVO_AMPLITUDE / 100);
+	m_servo.SetDegree(degree);
 }
 
 bool Car::IsMotorForward() const

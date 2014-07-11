@@ -44,8 +44,7 @@ public:
 
 	static constexpr int GetAutoStopTime()
 	{
-		return 17000;
-		//return 25000;
+		return 18000;
 	}
 
 	static constexpr int GetEmergencyStopDelay()

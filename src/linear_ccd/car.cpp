@@ -62,7 +62,7 @@ void Car::SetMotorDirection(const bool is_forward)
 
 void Car::SetMotorPower(const int16_t power)
 {
-	const Uint power_ = libutil::Clamp<Uint>(0, abs(power), 10000);
+	const Uint power_ = libutil::Clamp<Uint>(0, abs(power), 1000);
 	SetMotorDirection((power >= 0));
 	m_motor.SetPower(power_);
 }

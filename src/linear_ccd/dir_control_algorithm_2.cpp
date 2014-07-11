@@ -199,6 +199,8 @@ int DirControlAlgorithm2::ConcludeMid()
 float DirControlAlgorithm2::ConcludeKp()
 {
 	const int error = CCD_MID_POS - m_track_analyzer.GetMid();
+	const int abs_error = abs(error);
+	/*
 	if (abs(error) < 6)
 	{
 		return m_parameter.kp * 0.5f;
@@ -207,18 +209,36 @@ float DirControlAlgorithm2::ConcludeKp()
 	{
 		return m_parameter.kp * (1.0f + abs(error) / 5.0f);
 	}
+	*/
+	return (abs_error * abs_error) / 29.0f;
 }
 
 float DirControlAlgorithm2::ConcludeKd()
 {
 	const int error = CCD_MID_POS - m_track_analyzer.GetMid();
-	if (abs(error) < 6)
+	const int abs_error = abs(error);
+	if (abs_error < 6)
 	{
-		return m_parameter.kd * ((7 - abs(error)) * 0.972f);
+		return m_parameter.kd * ((20 - abs_error) * 1.925f);
 	}
 	else
 	{
-		return m_parameter.kd * (4.0f / abs(error));
+/*
+		int factor = 1;
+		if (abs_error >= 11)
+		{
+			return 0;
+		}
+		else
+		{
+			for (int i = 0; i < abs_error - 2; ++i)
+			{
+				factor *= abs_error;
+			}
+			return m_parameter.kd * 1.0f / factor * 19999;
+		}
+*/
+		return (float)(9 * 99) / (abs_error * abs_error);
 	}
 }
 

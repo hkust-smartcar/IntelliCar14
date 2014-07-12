@@ -47,7 +47,7 @@ Car::Car()
 		  m_light_sensors{LightSensor(0), LightSensor(1)},
 		  m_ccds{LinearCcd(0), LinearCcd(1)}, m_motor(0), m_buzzer(0),
 		  m_switches{Switch(0), Switch(1), Switch(2), Switch(3), Switch(4)},
-		  m_servo(0), m_bt(0, libbase::k60::Uart::Config::BaudRate::BR_115200)
+		  m_servo(0), m_bt(0, libbase::k60::Uart::Config::BaudRate::k115200)
 {
 	SetMotorPower(0);
 	m_servo.SetDegree(SERVO_MID_DEGREE);

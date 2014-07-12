@@ -134,10 +134,11 @@ void DirControlAlgorithm2::ProcessGeneral()
 	else if (m_track_analyzer.GetRightEdge() == -1)
 	{
 		if (m_track_analyzer.GetLeftEdge()
-				<= CCD_MID_POS - m_parameter.edge / 2)
+				<= CCD_MID_POS - m_parameter.edge)
 		{
 			// Possibly crossroad
 			m_case = 20;
+			//m_turning = m_prev_turning;
 #ifdef DEBUG_BEEP_GUESS_CROSSROAD
 			m_car->GetBeepManager()->Beep(100);
 #endif
@@ -154,10 +155,11 @@ void DirControlAlgorithm2::ProcessGeneral()
 	else  // m_track_analyzer.GetLeftEdge() == -1
 	{
 		if (m_track_analyzer.GetRightEdge()
-				>= CCD_MID_POS + m_parameter.edge / 2)
+				>= CCD_MID_POS + m_parameter.edge)
 		{
 			// Possibly crossroad
 			m_case = 30;
+			//m_turning = m_prev_turning;
 #ifdef DEBUG_BEEP_GUESS_CROSSROAD
 			m_car->GetBeepManager()->Beep(100);
 #endif
@@ -219,7 +221,7 @@ float DirControlAlgorithm2::ConcludeKd()
 	const int abs_error = abs(error);
 	if (abs_error < 6)
 	{
-		return m_parameter.kd * ((20 - abs_error) * 1.925f);
+		return m_parameter.kd * ((15 - abs_error) * 2.995f);
 	}
 	else
 	{
@@ -238,7 +240,7 @@ float DirControlAlgorithm2::ConcludeKd()
 			return m_parameter.kd * 1.0f / factor * 19999;
 		}
 */
-		return (float)(9 * 99) / (abs_error * abs_error);
+		return (float)(10 * 91) / (abs_error * abs_error);
 	}
 }
 

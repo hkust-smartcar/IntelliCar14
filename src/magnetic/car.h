@@ -9,12 +9,12 @@
 #ifndef MAGNETIC_CAR_H_
 #define MAGNETIC_CAR_H_
 
-#include <libsc/com/futaba_s3010.h>
+#include <libsc/k60/futaba_s3010.h>
 #include <libsc/com/lcd.h>
 #include <libsc/com/lcd_console.h>
-#include <libsc/com/led.h>
-#include <libsc/com/motor.h>
-#include <libsc/com/uart_device.h>
+#include <libsc/k60/led.h>
+#include <libsc/k60/motor.h>
+#include <libsc/k60/uart_device.h>
 #include <libsc/com/encoder.h>
 
 namespace magnetic
@@ -49,12 +49,12 @@ public:
 	void SetMotorRightDirection(const bool is_forward);
 	void SetMotorPowerLeft(const uint16_t power)
 	{
-		m_motor[1].SetPower(power);
+		m_motor[1].SetPower(power / 10);
 	}
 
 	void SetMotorPowerRight(const uint16_t power)
 	{
-		m_motor[0].SetPower(power);
+		m_motor[0].SetPower(power / 10);
 	}
 
 	void UpdateEncoder()
@@ -62,17 +62,6 @@ public:
 		m_encoder[0].Update();
 		m_encoder[1].Update();
 	}
-
-
-	void AddMotorPower(const uint16_t factor)
-	{
-		m_motor[0].AddPower(factor);
-		m_motor[1].AddPower(factor);
-	}
-
-	void AddMotorPowerTil(const uint16_t factor, const uint16_t max);
-	void DropMotorPower(const uint16_t factor);
-	void DropMotorPowerTil(const uint16_t factor, const uint16_t min);
 
 	/**
 	 * Set the turning percentage, negative input means turning left
@@ -104,7 +93,17 @@ public:
 		m_uart.SendStr(str);
 	}
 
-	void UartSendBuffer(const uint8_t *buf, const uint32_t len)
+	void UartSendStrLiteral(const char *str)
+	{
+		m_uart.SendStrLiteral(str);
+	}
+
+	void UartSendStr(std::string &&str)
+	{
+		m_uart.SendStr(std::move(str));
+	}
+
+	void UartSendBuffer(const Byte *buf, const size_t len)
 	{
 		m_uart.SendBuffer(buf, len);
 	}
@@ -125,12 +124,12 @@ public:
 		return m_motor[0].GetPower();
 	}
 
-	uint8_t GetRightPercentge() const;
-
 	int16_t GetEncoderCount(const uint8_t id)
 	{
 		return m_encoder[id].GetCount();
 	}
+
+	int16_t GetTurning() const;
 
 
 	void LcdDrawGrayscalePixelBuffer(const uint8_t x, const uint8_t y,
@@ -158,12 +157,12 @@ public:
 
 private:
 	libsc::Encoder m_encoder[2];
-	libsc::FutabaS3010 m_servo;
+	libsc::k60::FutabaS3010 m_servo;
 	libsc::Lcd m_lcd;
 	libsc::LcdConsole m_lcd_console;
-	libsc::Led m_leds[4];
-	libsc::Motor m_motor[2];
-	libsc::UartDevice m_uart;
+	libsc::k60::Led m_leds[4];
+	libsc::k60::Motor m_motor[2];
+	libsc::k60::UartDevice m_uart;
 
 };
 

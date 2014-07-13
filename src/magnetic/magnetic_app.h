@@ -12,17 +12,14 @@
 #include "magnetic/car.h"
 
 #include <log.h>
-#include <libutil/clock.h>
-#include<stdlib.h>
-#include<stdio.h>
-#include <MK60_pit.h>
+#include <stdlib.h>
+#include <stdio.h>
 #include <vectors.h>
-#include <libutil/clock.h>
+#include <libsc/k60/system.h>
 #include <libutil/misc.h>
 #include <libutil/pid_controller.h>
 #include <libutil/pid_controller.tcc>
-#include"libutil/clock.h"
-#include<libutil/kalman_filter.h>
+#include <libutil/kalman_filter.h>
 
 namespace magnetic
 {
@@ -36,6 +33,7 @@ public:
 	void Run();
 
 	static int FwriteHandler(int, char *ptr, int len);
+	static void HardFaultHandler(void);
 private:
 	__ISR void ServoFTMHandler();
 	static void GetSensorValue();
@@ -48,6 +46,7 @@ private:
 	void SpdCtrlpass();
 	uint16 Sensor_Average(int);
 	float sensor_offset();
+	int DipSWget();
 	uint16 CalcOffset(uint16);
 	libutil::KalmanFilter m_MagneticSenlx_filter;
 	libutil::KalmanFilter m_MagneticSenly_filter;

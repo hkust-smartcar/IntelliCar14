@@ -69,7 +69,7 @@ public:
 
 	static constexpr int GetTurnThreshold()
 	{
-		return 42;
+		return 38;
 	}
 
 	static constexpr int GetTurnInterval()

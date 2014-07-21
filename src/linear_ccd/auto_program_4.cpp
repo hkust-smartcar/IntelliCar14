@@ -410,7 +410,7 @@ void AutoProgram4::OnLightSensorDetectHandler(const uint8_t id)
 	return;
 #else
 	const Timer::TimerInt now = System::Time();
-	if (Timer::TimeDiff(now, m_start) > 5000)
+	if (Timer::TimeDiff(now, m_start) < 5000)
 	{
 		return;
 	}

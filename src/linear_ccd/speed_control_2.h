@@ -50,9 +50,24 @@ public:
 	}
 
 	void OnFinishWarmUp() override;
-	void Control() override;
+	int Control() override;
 
 	void SetTurnHint(const TurnHint hint) override;
+
+	float GetP() const
+	{
+		return m_pid.GetP();
+	}
+
+	float GetI() const
+	{
+		return m_pid.GetI();
+	}
+
+	float GetD() const
+	{
+		return m_pid.GetD();
+	}
 
 private:
 	Car *const m_car;
@@ -63,6 +78,8 @@ private:
 	libsc::k60::Timer::TimerInt m_start_time;
 	bool m_is_startup;
 	int m_reverse_count;
+
+	bool m_is_permissive_reverse;
 };
 
 }

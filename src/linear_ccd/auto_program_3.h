@@ -1,17 +1,17 @@
 /*
- * auto_program_2.h
+ * auto_program_3.h
  *
  * Author: Louis Mo, Ming Tsang, Spartey Chen
  * Copyright (c) 2014 HKUST SmartCar Team
  */
 
-#ifndef LINEAR_CCD_AUTO_PROGRAM_2_H_
-#define LINEAR_CCD_AUTO_PROGRAM_2_H_
+#ifndef LINEAR_CCD_AUTO_PROGRAM_3_H_
+#define LINEAR_CCD_AUTO_PROGRAM_3_H_
 
 #include <libsc/k60/timer.h>
 
 #include "linear_ccd/car.h"
-#include "linear_ccd/dir_control_algorithm_2.h"
+#include "linear_ccd/dir_control_algorithm_3.h"
 #include "linear_ccd/median_ccd_filter.h"
 #include "linear_ccd/program.h"
 #include "linear_ccd/speed_control_2.h"
@@ -19,11 +19,11 @@
 namespace linear_ccd
 {
 
-class AutoProgram2 : public Program
+class AutoProgram3 : public Program
 {
 public:
-	AutoProgram2();
-	~AutoProgram2();
+	AutoProgram3();
+	~AutoProgram3();
 
 	void Run() override;
 
@@ -99,15 +99,15 @@ private:
 
 	MedianCcdFilter m_ccd_filter;
 
-	DirControlAlgorithm2 m_dir_control;
+	DirControlAlgorithm3 m_dir_control;
 	SpeedControl2 m_speed_control;
 
 	libsc::k60::Timer::TimerInt m_start;
 	bool m_is_stop;
 
-	static AutoProgram2 *m_instance;
+	static AutoProgram3 *m_instance;
 };
 
 }
 
-#endif /* LINEAR_CCD_AUTO_PROGRAM_2_H_ */
+#endif /* LINEAR_CCD_AUTO_PROGRAM_3_H_ */

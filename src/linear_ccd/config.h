@@ -44,12 +44,17 @@ public:
 
 	static constexpr int GetAutoStopTime()
 	{
-		return 18000;
+		return 0;
 	}
 
 	static constexpr int GetEmergencyStopDelay()
 	{
 		return 3;
+	}
+
+	static constexpr int GetBrakeInterval()
+	{
+		return 19;
 	}
 
 	static constexpr int GetLedInterval()
@@ -64,7 +69,7 @@ public:
 
 	static constexpr int GetTurnThreshold()
 	{
-		return 36;
+		return 42;
 	}
 
 	static constexpr int GetTurnInterval()
@@ -75,6 +80,11 @@ public:
 	static constexpr int GetJoystickInterval()
 	{
 		return 25;
+	}
+
+	static constexpr int GetCcdMid()
+	{
+		return 61;
 	}
 
 	static constexpr int GetCcdValidPixel()
@@ -97,7 +107,9 @@ public:
 			//return 0x520;
 			//return 0x310;
 			//return 0x260;
-			return 0x180;
+			//return 237;
+			//return 260;
+			return 250;
 
 		//case 1:
 			//return 0x240;

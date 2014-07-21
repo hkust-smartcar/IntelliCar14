@@ -1,12 +1,12 @@
 /*
- * dir_control_algorithm_2.h
+ * dir_control_algorithm_3.h
  *
  * Author: Louis Mo, Ming Tsang, Spartey Chen
  * Copyright (c) 2014 HKUST SmartCar Team
  */
 
-#ifndef LINEAR_CCD_DIR_CONTROL_ALGORITHM_2_H_
-#define LINEAR_CCD_DIR_CONTROL_ALGORITHM_2_H_
+#ifndef LINEAR_CCD_DIR_CONTROL_ALGORITHM_3_H_
+#define LINEAR_CCD_DIR_CONTROL_ALGORITHM_3_H_
 
 #include <cstdint>
 #include <bitset>
@@ -15,15 +15,17 @@
 #include <libutil/kalman_filter.h>
 #include <libutil/pid_controller.h>
 
-#include "linear_ccd/kd_function_2.h"
-#include "linear_ccd/kp_function_2.h"
+#include "linear_ccd/kd_function_3.h"
+#include "linear_ccd/kd_function_4.h"
+#include "linear_ccd/kp_function_3.h"
+#include "linear_ccd/kp_function_4.h"
 #include "linear_ccd/track_analyzer.h"
 #include "linear_ccd/turn_hint.h"
 
 namespace linear_ccd
 {
 
-class DirControlAlgorithm2
+class DirControlAlgorithm3
 {
 public:
 	struct Parameter
@@ -35,8 +37,8 @@ public:
 		float turn_kd = 0;
 	};
 
-	explicit DirControlAlgorithm2(Car *const car);
-	DirControlAlgorithm2(Car *const car, const Parameter &parameter);
+	explicit DirControlAlgorithm3(Car *const car);
+	DirControlAlgorithm3(Car *const car, const Parameter &parameter);
 
 	void SetParameter(const Parameter &parameter);
 	const Parameter& GetParameter() const
@@ -105,8 +107,8 @@ private:
 	libutil::KalmanFilter m_mid_filter;
 	int m_filtered_mid;
 	libutil::PidController<int32_t, int32_t> m_pid;
-	KpFunction2 m_kp_func;
-	KdFunction2 m_kd_func;
+	KpFunction3 m_kp_func;
+	KdFunction3 m_kd_func;
 
 	uint8_t m_case;
 	int32_t m_turning;
@@ -117,4 +119,4 @@ private:
 
 }
 
-#endif /* LINEAR_CCD_DIR_CONTROL_ALGORITHM_2_H_ */
+#endif /* LINEAR_CCD_DIR_CONTROL_ALGORITHM_3_H_ */

@@ -8,7 +8,10 @@
 #ifndef LINEAR_CCD_CALIBRATE_PROGRAM_H_
 #define LINEAR_CCD_CALIBRATE_PROGRAM_H_
 
+#include <libbase/k60/dac.h>
+
 #include "linear_ccd/car.h"
+#include "linear_ccd/median_ccd_filter.h"
 #include "linear_ccd/program.h"
 #include "linear_ccd/track_analyzer.h"
 
@@ -23,8 +26,13 @@ public:
 	void Run() override;
 
 private:
+	void TuningStage();
+
 	Car m_car;
 	TrackAnalyzer m_track_analyzer;
+	MedianCcdFilter m_ccd_filter;
+
+	libbase::k60::Dac m_dac;
 };
 
 }

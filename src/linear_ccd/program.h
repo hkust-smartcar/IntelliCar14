@@ -16,8 +16,13 @@ class Program
 public:
 	enum struct Token
 	{
+		AUTO4,
+		AUTO3,
 		AUTO2,
 		AUTO,
+		MANUAL4,
+		MANUAL3,
+		CALIBRATE2,
 		CALIBRATE,
 
 		SIZE,

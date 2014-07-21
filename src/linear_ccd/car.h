@@ -15,6 +15,7 @@
 #include <string>
 #include <utility>
 
+#include <libbase/k60/dac.h>
 #include <libsc/k60/button.h>
 #include <libsc/com/encoder.h>
 #include <libsc/k60/joystick.h>
@@ -71,6 +72,11 @@ public:
 	void SwitchLed(const uint8_t id, const bool flag)
 	{
 		m_leds[id].SetEnable(flag);
+	}
+
+	void SetCcdDacThreshold(const uint16_t val)
+	{
+		m_dac.SetData(val);
 	}
 
 	void StartCcdSample()
@@ -144,6 +150,8 @@ public:
 	{
 		return m_bt.PeekChar(out_ch);
 	}
+
+	void UartEnableRx();
 
 	void SetUartLoopMode(const bool flag)
 	{
@@ -267,6 +275,12 @@ public:
 		return state;
 	}
 
+	void SetLightSensorListener(const uint8_t id,
+			const libsc::k60::LightSensor::OnDetectListener &listener)
+	{
+		m_light_sensors[id].SetOnDetectListener(listener);
+	}
+
 	bool IsLightSensorDetected(const uint8_t id)
 	{
 		return m_light_sensors[id].IsDetected();
@@ -289,6 +303,8 @@ public:
 
 private:
 	void SetMotorDirection(const bool is_forward);
+
+	libbase::k60::Dac m_dac;
 
 #ifdef LINEAR_CCD_2014
 	libsc::k60::Button m_buttons[2];

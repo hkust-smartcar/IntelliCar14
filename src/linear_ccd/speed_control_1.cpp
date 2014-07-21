@@ -376,7 +376,7 @@ void SpeedControl1::OnFinishWarmUp()
 	m_pid.Restart();
 }
 
-void SpeedControl1::Control()
+int SpeedControl1::Control()
 {
 	m_car->UpdateEncoder();
 	const int16_t count = m_car->GetEncoderCount();
@@ -408,6 +408,7 @@ void SpeedControl1::Control()
 		const int clamp_power = m_car->GetMotorPower()
 				+ libutil::Clamp<int>(-400, power - m_car->GetMotorPower(), 400);
 		m_car->SetMotorPower(clamp_power / 10);
+		return clamp_power;
 	}
 	else
 	{
@@ -452,6 +453,7 @@ void SpeedControl1::Control()
 #endif
 		m_car->SetMotorPower(libutil::Clamp<int>(-MOTOR_MAX_PWM, power,
 				MOTOR_MAX_PWM) / 10);
+		return power;
 	}
 
 #ifdef DEBUG

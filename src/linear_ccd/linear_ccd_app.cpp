@@ -17,8 +17,13 @@
 #include "linear_ccd/config.h"
 #include "linear_ccd/auto_program.h"
 #include "linear_ccd/auto_program_2.h"
+#include "linear_ccd/auto_program_3.h"
+#include "linear_ccd/auto_program_4.h"
 #include "linear_ccd/calibrate_program.h"
+#include "linear_ccd/calibrate_program_2.h"
 #include "linear_ccd/linear_ccd_app.h"
+#include "linear_ccd/manual_program_3.h"
+#include "linear_ccd/manual_program_4.h"
 
 using namespace libsc;
 using namespace libsc::k60;
@@ -68,26 +73,27 @@ void ProgramMenu::Select(const int id)
 
 Program::Token ProgramMenu::GetSelectedItem() const
 {
-	switch (m_select)
+	if (m_select >= 0 && m_select < (int)Program::Token::SIZE)
 	{
-	default:
-	case 0:
-		return Program::Token::AUTO2;
-
-	case 1:
-		return Program::Token::AUTO;
-
-	case 2:
-		return Program::Token::CALIBRATE;
+		return (Program::Token)m_select;
+	}
+	else
+	{
+		return (Program::Token)0;
 	}
 }
 
 void ProgramMenu::Redraw()
 {
 	m_console.SetCursorRow(0);
-	m_console.PrintString("Auto 2\n", 0xFFFF, (m_select == 0) ? 0x35BC : 0);
-	m_console.PrintString("Auto 1\n", 0xFFFF, (m_select == 1) ? 0x35BC : 0);
-	m_console.PrintString("Calibrate\n", 0xFFFF, (m_select == 2) ? 0x35BC : 0);
+	m_console.PrintString("Auto 4\n", 0xFFFF, (m_select == 0) ? 0x35BC : 0);
+	m_console.PrintString("Auto 3\n", 0xFFFF, (m_select == 1) ? 0x35BC : 0);
+	m_console.PrintString("Auto 2\n", 0xFFFF, (m_select == 2) ? 0x35BC : 0);
+	m_console.PrintString("Auto 1\n", 0xFFFF, (m_select == 3) ? 0x35BC : 0);
+	m_console.PrintString("Manual 4\n", 0xFFFF, (m_select == 4) ? 0x35BC : 0);
+	m_console.PrintString("Manual 3\n", 0xFFFF, (m_select == 5) ? 0x35BC : 0);
+	m_console.PrintString("Calibrate 2\n", 0xFFFF, (m_select == 6) ? 0x35BC : 0);
+	m_console.PrintString("Calibrate\n", 0xFFFF, (m_select == 7) ? 0x35BC : 0);
 }
 
 }
@@ -100,6 +106,20 @@ void LinearCcdApp::Run()
 
 	switch (SelectProgram())
 	{
+	case Program::Token::AUTO4:
+		{
+			AutoProgram4 prog;
+			prog.Run();
+		}
+		break;
+
+	case Program::Token::AUTO3:
+		{
+			AutoProgram3 prog;
+			prog.Run();
+		}
+		break;
+
 	case Program::Token::AUTO2:
 		{
 			AutoProgram2 prog;
@@ -114,9 +134,30 @@ void LinearCcdApp::Run()
 		}
 		break;
 
+	case Program::Token::MANUAL4:
+		{
+			ManualProgram4 prog;
+			prog.Run();
+		}
+		break;
+
+	case Program::Token::MANUAL3:
+		{
+			ManualProgram3 prog;
+			prog.Run();
+		}
+		break;
+
 	case Program::Token::CALIBRATE:
 		{
 			CalibrateProgram prog;
+			prog.Run();
+		}
+		break;
+
+	case Program::Token::CALIBRATE2:
+		{
+			CalibrateProgram2 prog;
 			prog.Run();
 		}
 		break;
@@ -136,7 +177,7 @@ Program::Token LinearCcdApp::SelectProgram()
 	while (true)
 	{
 		const Timer::TimerInt now = System::Time();
-		if (Timer::TimeDiff(now, time) >= 10)
+		if (Timer::TimeDiff(now, time) >= 5)
 		{
 			if (delay > 0)
 			{

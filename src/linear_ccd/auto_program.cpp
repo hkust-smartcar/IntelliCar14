@@ -81,7 +81,9 @@ void AutoProgram::Run()
 		//DetectStopLine();
 		if (!m_is_stop)
 		{
-			if (Timer::TimeDiff(System::Time(), m_start) > AUTOSTOP_TIME)
+			if (Config::GetAutoStopTime() != 0
+					&& Timer::TimeDiff(System::Time(), m_start)
+							>= Config::GetAutoStopTime())
 			{
 				m_is_stop = true;
 			}

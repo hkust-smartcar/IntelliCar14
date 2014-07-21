@@ -34,7 +34,7 @@ public:
 	explicit SpeedControl1(Car *car);
 
 	void OnFinishWarmUp() override;
-	void Control() override;
+	int Control() override;
 
 	void SetMode(const Uint mode)
 	{

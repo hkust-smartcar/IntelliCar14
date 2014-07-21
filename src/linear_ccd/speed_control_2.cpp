@@ -6,6 +6,7 @@
  * Copyright (c) 2014 HKUST SmartCar Team
  */
 
+#include <climits>
 #include <cstdint>
 
 #include <libsc/k60/system.h>
@@ -14,6 +15,7 @@
 #include <libutil/pid_controller.h>
 #include <libutil/pid_controller.tcc>
 
+#include "linear_ccd/debug.h"
 #include "linear_ccd/config.h"
 #include "linear_ccd/beep_manager.h"
 #include "linear_ccd/car.h"
@@ -25,7 +27,7 @@ using namespace libsc::k60;
 using namespace std;
 
 #define MOTOR_MAX_PWM 7000
-#define ACCELERATE_DELAY 7
+#define ACCELERATE_DELAY 15
 #define I_LIMIT 3500
 
 namespace linear_ccd
@@ -42,7 +44,8 @@ SpeedControl2::SpeedControl2(Car *const car, const Parameter &parameter)
 		  m_straight_mode_delay(0),
 		  m_start_time(0),
 		  m_is_startup(true),
-		  m_reverse_count(0)
+		  m_reverse_count(0),
+		  m_is_permissive_reverse(false)
 {
 	m_pid.SetILimit(I_LIMIT);
 }
@@ -62,7 +65,7 @@ void SpeedControl2::OnFinishWarmUp()
 	m_pid.Restart();
 }
 
-void SpeedControl2::Control()
+int SpeedControl2::Control()
 {
 	m_car->UpdateEncoder();
 	const int16_t count = m_car->GetEncoderCount();
@@ -79,6 +82,7 @@ void SpeedControl2::Control()
 		const int clamp_power = m_car->GetMotorPower()
 				+ libutil::Clamp<int>(-400, power - m_car->GetMotorPower(), 400);
 		m_car->SetMotorPower(clamp_power / 10);
+		return clamp_power;
 	}
 	else
 	{
@@ -97,18 +101,18 @@ void SpeedControl2::Control()
 */
 		if (power < 0)
 		{
-			++m_reverse_count;
-			if (power >= -3500
-					&& m_reverse_count < (m_pid.GetSetpoint() >> 3))
+			if (power >= -6000 || m_is_permissive_reverse)
 			{
-				if (m_parameter.turn_sp == m_parameter.sp)
+				m_reverse_count = INT_MAX;
+			}
+
+			if (m_reverse_count < (m_pid.GetSetpoint() >> 2))
+			{
+				if (power >= -3500)
 				{
-					power = 0;
+					++m_reverse_count;
 				}
-				else if (m_car->GetTurning() <= Config::GetTurnThreshold())
-				{
-					power = 0;
-				}
+				power = 0;
 			}
 		}
 		else
@@ -118,11 +122,12 @@ void SpeedControl2::Control()
 #ifdef DEBUG_BEEP_REVERSE_MOTOR
 		if (power < 0)
 		{
-			BeepManager::GetInstance(m_car)->Beep(100);
+			m_car->GetBeepManager()->Beep(100);
 		}
 #endif
 		m_car->SetMotorPower(libutil::Clamp<int>(-MOTOR_MAX_PWM, power,
 				MOTOR_MAX_PWM) / 10);
+		return power;
 	}
 }
 
@@ -143,6 +148,10 @@ void SpeedControl2::SetTurnHint(const TurnHint hint)
 		{
 			--m_straight_mode_delay;
 		}
+		m_is_permissive_reverse = false;
+#ifdef DEBUG_BEEP_SPEED_STRAIGHT
+		m_car->GetBeepManager()->Beep(100);
+#endif
 		break;
 
 	case TurnHint::PRE_TURN:
@@ -151,6 +160,7 @@ void SpeedControl2::SetTurnHint(const TurnHint hint)
 	case TurnHint::TURN:
 		m_pid.SetSetpoint(m_parameter.turn_sp);
 		m_straight_mode_delay = static_cast<uint8_t>(-1);
+		m_is_permissive_reverse = true;
 		break;
 	}
 }

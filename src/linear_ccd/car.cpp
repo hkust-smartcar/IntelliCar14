@@ -8,8 +8,7 @@
 
 #include <cstdint>
 
-#include "linear_ccd/debug.h"
-
+#include <libbase/k60/dac.h>
 #include <libsc/k60/button.h>
 #include <libsc/com/encoder.h>
 #include <libsc/com/gyroscope.h>
@@ -23,21 +22,38 @@
 #include <libsc/k60/uart_device.h>
 #include <libutil/misc.h>
 
+#include "linear_ccd/debug.h"
 #include "linear_ccd/car.h"
 
-#define SERVO_MID_DEGREE 820
+#define SERVO_MID_DEGREE 825
 #define SERVO_AMPLITUDE 290
 #define SERVO_MAX_DEGREE (SERVO_MID_DEGREE + SERVO_AMPLITUDE)
 #define SERVO_MIN_DEGREE (SERVO_MID_DEGREE - SERVO_AMPLITUDE)
 
+using namespace libbase::k60;
 using namespace libsc;
 using namespace libsc::k60;
 
 namespace linear_ccd
 {
 
+namespace
+{
+
+Dac::Config GetDacConfig()
+{
+	Dac::Config dc;
+	dc.module = 0;
+	dc.data[0] = 0;
+	dc.data_size = 1;
+	return dc;
+}
+
+}
+
 Car::Car()
-		: m_buttons{Button(0), Button(1)
+		: m_dac(GetDacConfig()),
+		  m_buttons{Button(0), Button(1)
 #ifndef LINEAR_CCD_2014
 				  , Button(2), Button(3)
 #endif
@@ -51,8 +67,12 @@ Car::Car()
 {
 	SetMotorPower(0);
 	m_servo.SetDegree(SERVO_MID_DEGREE);
-	m_bt.EnableRx();
 	m_lcd.Clear(libutil::GetRgb565(0x33, 0xB5, 0xE5));
+}
+
+void Car::UartEnableRx()
+{
+	m_bt.EnableRx();
 }
 
 void Car::SetMotorDirection(const bool is_forward)

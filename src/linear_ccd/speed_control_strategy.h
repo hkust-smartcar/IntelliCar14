@@ -30,7 +30,7 @@ public:
 	{}
 
 	virtual void OnFinishWarmUp() = 0;
-	virtual void Control() = 0;
+	virtual int Control() = 0;
 	virtual void SetTurnHint(const TurnHint hint) = 0;
 };
 

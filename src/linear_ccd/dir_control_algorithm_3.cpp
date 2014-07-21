@@ -1,5 +1,5 @@
 /*
- * dir_control_algorithm_2.cpp
+ * dir_control_algorithm_3.cpp
  *
  * Author: Louis Mo, Ming Tsang, Spartey Chen
  * Copyright (c) 2014 HKUST SmartCar Team
@@ -23,7 +23,7 @@
 #include "linear_ccd/config.h"
 #include "linear_ccd/beep_manager.h"
 #include "linear_ccd/car.h"
-#include "linear_ccd/dir_control_algorithm_2.h"
+#include "linear_ccd/dir_control_algorithm_3.h"
 #include "linear_ccd/kd_function_3.h"
 #include "linear_ccd/kp_function_3.h"
 #include "linear_ccd/track_analyzer.h"
@@ -40,11 +40,11 @@ using namespace std;
 namespace linear_ccd
 {
 
-DirControlAlgorithm2::DirControlAlgorithm2(Car *const car)
-		: DirControlAlgorithm2(car, Parameter())
+DirControlAlgorithm3::DirControlAlgorithm3(Car *const car)
+		: DirControlAlgorithm3(car, Parameter())
 {}
 
-DirControlAlgorithm2::DirControlAlgorithm2(Car *const car,
+DirControlAlgorithm3::DirControlAlgorithm3(Car *const car,
 		const Parameter &parameter)
 		: m_car(car),
 		  m_parameter(parameter),
@@ -59,7 +59,7 @@ DirControlAlgorithm2::DirControlAlgorithm2(Car *const car,
 		  m_prev_turning(0)
 {}
 
-void DirControlAlgorithm2::SetParameter(const Parameter &parameter)
+void DirControlAlgorithm3::SetParameter(const Parameter &parameter)
 {
 	m_parameter = parameter;
 	m_kp_func.SetMultiplier(m_parameter.kp);
@@ -67,12 +67,12 @@ void DirControlAlgorithm2::SetParameter(const Parameter &parameter)
 	m_track_analyzer.SetEdge(m_parameter.edge);
 }
 
-void DirControlAlgorithm2::OnFinishWarmUp()
+void DirControlAlgorithm3::OnFinishWarmUp()
 {
 	m_pid.Restart();
 }
 
-int32_t DirControlAlgorithm2::Process(
+int32_t DirControlAlgorithm3::Process(
 		const bitset<LinearCcd::SENSOR_W> &ccd_data)
 {
 	m_case = 0;
@@ -106,7 +106,7 @@ int32_t DirControlAlgorithm2::Process(
 	return m_turning;
 }
 
-void DirControlAlgorithm2::ProcessFill()
+void DirControlAlgorithm3::ProcessFill()
 {
 	/* ---------------------------------------- (no middle noise) Cross road*/
 	if (m_track_analyzer.IsAllWhite())
@@ -138,7 +138,7 @@ void DirControlAlgorithm2::ProcessFill()
 	}
 }
 
-void DirControlAlgorithm2::ProcessGeneral()
+void DirControlAlgorithm3::ProcessGeneral()
 {
 	/* ||||--------------------------------|||| */
 	if (m_track_analyzer.GetLeftEdge() != -1
@@ -190,7 +190,7 @@ void DirControlAlgorithm2::ProcessGeneral()
 	}
 }
 
-int DirControlAlgorithm2::ConcludeMid()
+int DirControlAlgorithm3::ConcludeMid()
 {
 	static bool is_turn_ = false;
 
@@ -217,15 +217,16 @@ int DirControlAlgorithm2::ConcludeMid()
 	//return CCD_MID_POS - new_error;
 }
 
-float DirControlAlgorithm2::ConcludeKp()
+float DirControlAlgorithm3::ConcludeKp()
 {
 	const int error = CCD_MID_POS - m_track_analyzer.GetMid();
 	return m_kp_func.Calc(error);
 }
 
-float DirControlAlgorithm2::ConcludeKd()
+float DirControlAlgorithm3::ConcludeKd()
 {
 	const int error = CCD_MID_POS - m_track_analyzer.GetMid();
+	return 0;
 	return m_kd_func.Calc(error);
 }
 

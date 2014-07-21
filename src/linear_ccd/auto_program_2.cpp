@@ -5,8 +5,6 @@
  * Copyright (c) 2014 HKUST SmartCar Team
  */
 
-#include <mini_common.h>
-#include <hw_common.h>
 #include <syscall.h>
 #include <vectors.h>
 
@@ -14,10 +12,10 @@
 #include <cstring>
 
 #include <bitset>
+#include <functional>
 #include <string>
 
 #include <log.h>
-#include <MK60_dac.h>
 
 #include <libsc/k60/linear_ccd.h>
 #include <libsc/k60/system.h>
@@ -32,9 +30,10 @@
 #include "linear_ccd/auto_program_2.h"
 #include "linear_ccd/beep_manager.h"
 #include "linear_ccd/car.h"
+#include "linear_ccd/dir_control_algorithm_2.h"
 #include "linear_ccd/median_ccd_filter.h"
 #include "linear_ccd/program.h"
-#include "linear_ccd/speed_control_1.h"
+#include "linear_ccd/speed_control_2.h"
 
 using namespace libsc::k60;
 using namespace libutil;
@@ -160,16 +159,16 @@ TuningMenu::TuningMenu(Car *const car)
 	m_edge = manager->Register("", TunableInt::Type::INTEGER,
 			27);
 	m_turn_kp = manager->Register("", TunableInt::Type::REAL,
-			TunableInt::AsUnsigned(2.79f));
+			TunableInt::AsUnsigned(1.00f));
 	m_turn_kd = manager->Register("", TunableInt::Type::REAL,
-			TunableInt::AsUnsigned(0.059f));
+			TunableInt::AsUnsigned(1.00f));
 	m_turn_turn_kp = manager->Register("", TunableInt::Type::REAL,
 			TunableInt::AsUnsigned(13.24f));
 	m_turn_turn_kd = manager->Register("", TunableInt::Type::REAL,
 			TunableInt::AsUnsigned(0.42f));
 
 	m_speed_sp = manager->Register("", TunableInt::Type::INTEGER,
-			410);
+			390);
 	m_speed_kp = manager->Register("", TunableInt::Type::REAL,
 			TunableInt::AsUnsigned(104.5f));
 	m_speed_ki = manager->Register("", TunableInt::Type::REAL,
@@ -177,7 +176,7 @@ TuningMenu::TuningMenu(Car *const car)
 	m_speed_kd = manager->Register("", TunableInt::Type::REAL,
 			TunableInt::AsUnsigned(0.05f));
 	m_speed_turn_sp = manager->Register("", TunableInt::Type::INTEGER,
-			400);
+			390);
 }
 
 void TuningMenu::Run()
@@ -273,6 +272,8 @@ void TuningMenu::Run()
 
 	manager->Stop();
 	m_car->SetUartLoopMode(false);
+	System::DelayMs(1);
+	m_car->UartEnableRx();
 }
 
 void TuningMenu::Select(const int id)
@@ -348,7 +349,7 @@ void TuningMenu::AdjustValueTurn(const bool is_positive)
 		{
 			data[0] = m_turn_kd->GetId();
 			float value = TunableInt::AsFloat(m_turn_kd->GetValue());
-			value += (is_positive ? 0.002f : -0.002f) * GetMultiplier();
+			value += (is_positive ? 0.005f : -0.005f) * GetMultiplier();
 			memcpy(data + 1, &value, 4);
 		}
 		break;
@@ -506,6 +507,8 @@ AutoProgram2::AutoProgram2()
 		  m_is_stop(false)
 {
 	m_instance = this;
+	m_car.UartSendStr("|--- Running Auto 2 ---|\n");
+	System::DelayMs(25);
 }
 
 AutoProgram2::~AutoProgram2()
@@ -527,25 +530,64 @@ void AutoProgram2::Run()
 		ServoPass();
 		if (!m_is_stop)
 		{
-			if (Timer::TimeDiff(System::Time(), m_start)
-					>= Config::GetAutoStopTime())
+			if (Config::GetAutoStopTime() != 0
+					&& Timer::TimeDiff(System::Time(), m_start)
+							>= Config::GetAutoStopTime())
 			{
 				m_is_stop = true;
 			}
 			else
 			{
-				SpeedControlPass();
+				if (m_brake_state.is_brake)
+				{
+					BrakePass();
+				}
+				else
+				{
+					SpeedControlPass();
+				}
 			}
 			DetectEmergencyStop();
 		}
 		else
 		{
 			m_car.StopMotor();
+			//BrakePass();
 		}
 
 		LedPass();
 		JoystickPass();
 		m_car.GetBeepManager()->Process();
+	}
+}
+
+void AutoProgram2::BrakePass()
+{
+	const Timer::TimerInt time = System::Time();
+	if (Timer::TimeDiff(time, m_brake_state.prev_run)
+			>= Config::GetBrakeInterval())
+	{
+		m_car.UpdateEncoder();
+		const int16_t count = m_car.GetEncoderCount();
+		const uint16_t abs_count = abs(count);
+		if (abs_count < 90)
+		{
+			m_car.StopMotor();
+		}
+		else if (abs_count < 160)
+		{
+			m_car.SetMotorPower(1800 * ((count > 0) ? -1 : 1));
+		}
+		else if (abs_count < 300)
+		{
+			m_car.SetMotorPower(2800 * ((count > 0) ? -1 : 1));
+		}
+		else
+		{
+			m_car.SetMotorPower(3500 * ((count > 0) ? -1 : 1));
+		}
+
+		m_brake_state.prev_run = time;
 	}
 }
 
@@ -659,13 +701,38 @@ void AutoProgram2::SpeedControlPass()
 		iprintf("spd freq: %lu\n", Timer::TimeDiff(time, m_speed_state.prev_run));
 #endif
 
-		m_speed_control.Control();
+		const int power = m_speed_control.Control();
+
+#ifdef DEBUG_PRINT_SPEED_ERROR_AND_PID
+		static int print_error_pid_delay_ = 0;
+		if (++print_error_pid_delay_ >= 3)
+		{
+			m_car.UartSendStr(String::Format("%d %.3f %.3f %.3f %d\n",
+					m_speed_control.GetParameter().sp - m_car.GetEncoderCount(),
+					m_speed_control.GetP(),
+					m_speed_control.GetI(),
+					m_speed_control.GetD(),
+					power));
+			print_error_pid_delay_ = 0;
+		}
+#endif
+
 		m_speed_state.prev_run = time;
 	}
 }
 
 void AutoProgram2::DetectEmergencyStop()
 {
+#ifdef DEBUG_USE_BT_EMERGENCY_STOP
+	char ch;
+	if (m_car.UartPeekChar(&ch))
+	{
+		m_brake_state.is_brake = true;
+		m_car.GetBeepManager()->Beep(500);
+	}
+#endif
+
+#ifdef DEBUG_USE_EMERGENCY_STOP
 	static bool is_startup = true;
 	const Timer::TimerInt time = System::Time();
 	if (is_startup && Timer::TimeDiff(time, m_start) > 2000)
@@ -695,6 +762,11 @@ void AutoProgram2::DetectEmergencyStop()
 	{
 		m_emergency_stop_state.is_triggered = false;
 	}
+
+#else
+	return;
+
+#endif
 }
 
 void AutoProgram2::TuningStage()
@@ -718,8 +790,7 @@ void AutoProgram2::TuningStage()
 	sp.turn_sp = menu.GetSpeedTurnSp();
 	m_speed_control.SetParameter(sp);
 
-	dac_init(DAC0);
-	dac_out(DAC0, menu.GetCcdThreshold());
+	m_car.SetCcdDacThreshold(menu.GetCcdThreshold());
 
 	m_car.UartSendStrLiteral("|--- Paramter ---|\n");
 	m_car.UartSendStr(String::Format("%d, %.3f, %.3f, %.3f, %.3f\n",
@@ -746,6 +817,10 @@ void AutoProgram2::CountDownStage()
 	m_car.SetBuzzerBeep(false);
 
 	m_car.UpdateEncoder();
+	m_car.SetLightSensorListener(0, std::bind(
+			&AutoProgram2::OnLightSensorDetectHandler, this, placeholders::_1));
+	m_car.SetLightSensorListener(1, std::bind(
+			&AutoProgram2::OnLightSensorDetectHandler, this, placeholders::_1));
 	m_dir_control.OnFinishWarmUp();
 	m_speed_control.OnFinishWarmUp();
 	for (int i = 0; i < LinearCcd::SENSOR_W; ++i)
@@ -779,6 +854,26 @@ void AutoProgram2::LcdRedraw()
 				m_speed_control.GetParameter().kd,
 				m_speed_control.GetParameter().turn_sp).c_str(), 0xFFFF);
 		break;
+	}
+}
+
+void AutoProgram2::OnLightSensorDetectHandler(const uint8_t id)
+{
+	const Timer::TimerInt now = System::Time();
+	if (Timer::TimeDiff(now, m_goal_state.trigger_time) > 250
+			|| m_goal_state.trigger_id == (uint8_t)-1
+			|| m_goal_state.trigger_id == id)
+	{
+		m_goal_state.trigger_time = now;
+		m_goal_state.trigger_id = id;
+#ifdef DEBUG_BEEP_LIGHT_SENSOR
+		m_car.GetBeepManager()->Beep(100);
+#endif
+	}
+	else
+	{
+		m_brake_state.is_brake = true;
+		m_car.GetBeepManager()->Beep(500);
 	}
 }
 

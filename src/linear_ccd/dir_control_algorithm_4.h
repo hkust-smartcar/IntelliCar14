@@ -1,42 +1,44 @@
 /*
- * dir_control_algorithm_2.h
+ * dir_control_algorithm_4.h
  *
  * Author: Louis Mo, Ming Tsang, Spartey Chen
  * Copyright (c) 2014 HKUST SmartCar Team
  */
 
-#ifndef LINEAR_CCD_DIR_CONTROL_ALGORITHM_2_H_
-#define LINEAR_CCD_DIR_CONTROL_ALGORITHM_2_H_
+#ifndef LINEAR_CCD_DIR_CONTROL_ALGORITHM_4_H_
+#define LINEAR_CCD_DIR_CONTROL_ALGORITHM_4_H_
 
 #include <cstdint>
+
 #include <bitset>
+#include <memory>
 
 #include <libbase/k60/misc_utils.h>
 #include <libutil/kalman_filter.h>
 #include <libutil/pid_controller.h>
 
-#include "linear_ccd/kd_function_2.h"
-#include "linear_ccd/kp_function_2.h"
+#include "linear_ccd/kpid_function.h"
 #include "linear_ccd/track_analyzer.h"
 #include "linear_ccd/turn_hint.h"
 
 namespace linear_ccd
 {
 
-class DirControlAlgorithm2
+class DirControlAlgorithm4
 {
 public:
 	struct Parameter
 	{
+		int mid = 64;
 		int edge = 25;
 		float kp = 0;
+		int kp_fn = 0;
 		float kd = 0;
-		float turn_kp = 0;
-		float turn_kd = 0;
+		int kd_fn = 0;
 	};
 
-	explicit DirControlAlgorithm2(Car *const car);
-	DirControlAlgorithm2(Car *const car, const Parameter &parameter);
+	explicit DirControlAlgorithm4(Car *const car);
+	DirControlAlgorithm4(Car *const car, const Parameter &parameter);
 
 	void SetParameter(const Parameter &parameter);
 	const Parameter& GetParameter() const
@@ -96,7 +98,8 @@ private:
 	float ConcludeKp();
 	float ConcludeKd();
 
-	void SetTurnHint(const TurnHint hint);
+	void SetKpFunction(const int kp_fn);
+	void SetKdFunction(const int kd_fn);
 
 	Car *const m_car;
 	Parameter m_parameter;
@@ -105,8 +108,8 @@ private:
 	libutil::KalmanFilter m_mid_filter;
 	int m_filtered_mid;
 	libutil::PidController<int32_t, int32_t> m_pid;
-	KpFunction2 m_kp_func;
-	KdFunction2 m_kd_func;
+	std::unique_ptr<KpidFunction> m_kp_fn;
+	std::unique_ptr<KpidFunction> m_kd_fn;
 
 	uint8_t m_case;
 	int32_t m_turning;
@@ -117,4 +120,4 @@ private:
 
 }
 
-#endif /* LINEAR_CCD_DIR_CONTROL_ALGORITHM_2_H_ */
+#endif /* LINEAR_CCD_DIR_CONTROL_ALGORITHM_4_H_ */

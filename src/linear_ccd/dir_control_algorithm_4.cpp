@@ -1,13 +1,15 @@
 /*
- * dir_control_algorithm_2.cpp
+ * dir_control_algorithm_4.cpp
  *
  * Author: Louis Mo, Ming Tsang, Spartey Chen
  * Copyright (c) 2014 HKUST SmartCar Team
  */
 
+#include <cassert>
 #include <cstdint>
 
 #include <bitset>
+#include <memory>
 
 #include <libsc/k60/linear_ccd.h>
 #include <libutil/incremental_pid_controller.h>
@@ -23,28 +25,35 @@
 #include "linear_ccd/config.h"
 #include "linear_ccd/beep_manager.h"
 #include "linear_ccd/car.h"
-#include "linear_ccd/dir_control_algorithm_2.h"
+#include "linear_ccd/dir_control_algorithm_4.h"
+#include "linear_ccd/kd_function_1.h"
+#include "linear_ccd/kd_function_2.h"
 #include "linear_ccd/kd_function_3.h"
+#include "linear_ccd/kd_function_4.h"
+#include "linear_ccd/kd_function_5.h"
+#include "linear_ccd/kd_function_6.h"
+#include "linear_ccd/kp_function_1.h"
+#include "linear_ccd/kp_function_2.h"
 #include "linear_ccd/kp_function_3.h"
+#include "linear_ccd/kp_function_4.h"
+#include "linear_ccd/kpid_function.h"
 #include "linear_ccd/track_analyzer.h"
 #include "linear_ccd/turn_hint.h"
 
 using namespace libsc::k60;
 using namespace std;
 
-#define CCD_MID_POS Config::GetCcdMid()
-
 #define KALMAN_FILTER_Q 0.0000005f
-#define KALMAN_FILTER_R 0.0005f
+#define KALMAN_FILTER_R 0.005f
 
 namespace linear_ccd
 {
 
-DirControlAlgorithm2::DirControlAlgorithm2(Car *const car)
-		: DirControlAlgorithm2(car, Parameter())
+DirControlAlgorithm4::DirControlAlgorithm4(Car *const car)
+		: DirControlAlgorithm4(car, Parameter())
 {}
 
-DirControlAlgorithm2::DirControlAlgorithm2(Car *const car,
+DirControlAlgorithm4::DirControlAlgorithm4(Car *const car,
 		const Parameter &parameter)
 		: m_car(car),
 		  m_parameter(parameter),
@@ -52,27 +61,33 @@ DirControlAlgorithm2::DirControlAlgorithm2(Car *const car,
 		  m_track_analyzer(parameter.edge),
 		  m_mid_filter(KALMAN_FILTER_Q, KALMAN_FILTER_R, 64, 1),
 		  m_filtered_mid(0),
-		  m_pid(CCD_MID_POS, parameter.kp, 0.0f, parameter.kd),
+		  m_pid(parameter.mid, 0.0f, 0.0f, 0.0f),
+		  m_kp_fn(nullptr),
+		  m_kd_fn(nullptr),
 
 		  m_case(0),
 		  m_turning(0),
 		  m_prev_turning(0)
-{}
+{
+	SetKpFunction(m_parameter.kp_fn);
+	SetKdFunction(m_parameter.kd_fn);
+}
 
-void DirControlAlgorithm2::SetParameter(const Parameter &parameter)
+void DirControlAlgorithm4::SetParameter(const Parameter &parameter)
 {
 	m_parameter = parameter;
-	m_kp_func.SetMultiplier(m_parameter.kp);
-	m_kd_func.SetMultiplier(m_parameter.kd);
+	m_pid.SetSetpoint(m_parameter.mid);
+	SetKpFunction(m_parameter.kp_fn);
+	SetKdFunction(m_parameter.kd_fn);
 	m_track_analyzer.SetEdge(m_parameter.edge);
 }
 
-void DirControlAlgorithm2::OnFinishWarmUp()
+void DirControlAlgorithm4::OnFinishWarmUp()
 {
 	m_pid.Restart();
 }
 
-int32_t DirControlAlgorithm2::Process(
+int32_t DirControlAlgorithm4::Process(
 		const bitset<LinearCcd::SENSOR_W> &ccd_data)
 {
 	m_case = 0;
@@ -106,7 +121,7 @@ int32_t DirControlAlgorithm2::Process(
 	return m_turning;
 }
 
-void DirControlAlgorithm2::ProcessFill()
+void DirControlAlgorithm4::ProcessFill()
 {
 	/* ---------------------------------------- (no middle noise) Cross road*/
 	if (m_track_analyzer.IsAllWhite())
@@ -138,7 +153,7 @@ void DirControlAlgorithm2::ProcessFill()
 	}
 }
 
-void DirControlAlgorithm2::ProcessGeneral()
+void DirControlAlgorithm4::ProcessGeneral()
 {
 	/* ||||--------------------------------|||| */
 	if (m_track_analyzer.GetLeftEdge() != -1
@@ -153,7 +168,7 @@ void DirControlAlgorithm2::ProcessGeneral()
 	else if (m_track_analyzer.GetRightEdge() == -1)
 	{
 		if (m_track_analyzer.GetLeftEdge()
-				<= CCD_MID_POS - m_parameter.edge)
+				<= m_parameter.mid - m_parameter.edge)
 		{
 			// Possibly crossroad
 			m_case = 20;
@@ -174,7 +189,7 @@ void DirControlAlgorithm2::ProcessGeneral()
 	else  // m_track_analyzer.GetLeftEdge() == -1
 	{
 		if (m_track_analyzer.GetRightEdge()
-				>= CCD_MID_POS + m_parameter.edge)
+				>= m_parameter.mid + m_parameter.edge)
 		{
 			// Possibly crossroad
 			m_case = 30;
@@ -190,11 +205,11 @@ void DirControlAlgorithm2::ProcessGeneral()
 	}
 }
 
-int DirControlAlgorithm2::ConcludeMid()
+int DirControlAlgorithm4::ConcludeMid()
 {
 	static bool is_turn_ = false;
 
-	const int error = CCD_MID_POS - m_track_analyzer.GetMid();
+	const int error = m_parameter.mid - m_track_analyzer.GetMid();
 	int new_mid;
 	if (abs(error) < 6)
 	{
@@ -212,21 +227,105 @@ int DirControlAlgorithm2::ConcludeMid()
 		new_mid = m_track_analyzer.GetMid();
 	}
 
-	const int new_error = CCD_MID_POS - new_mid;
-	return CCD_MID_POS - (int)(new_error * (1 + abs(new_error) / 85.0f));
-	//return CCD_MID_POS - new_error;
+	const int new_error = m_parameter.mid - new_mid;
+	return m_parameter.mid - (int)(new_error * (1 + abs(new_error) / 85.0f));
+	//return m_parameter.mid - new_error;
 }
 
-float DirControlAlgorithm2::ConcludeKp()
+float DirControlAlgorithm4::ConcludeKp()
 {
-	const int error = CCD_MID_POS - m_track_analyzer.GetMid();
-	return m_kp_func.Calc(error);
+	const int error = m_parameter.mid - m_track_analyzer.GetMid();
+	if (m_kp_fn)
+	{
+		return m_kp_fn->Calc(error);
+	}
+	else
+	{
+		return m_parameter.kp;
+	}
 }
 
-float DirControlAlgorithm2::ConcludeKd()
+float DirControlAlgorithm4::ConcludeKd()
 {
-	const int error = CCD_MID_POS - m_track_analyzer.GetMid();
-	return m_kd_func.Calc(error);
+	const int error = m_parameter.mid - m_track_analyzer.GetMid();
+	if (m_kd_fn)
+	{
+		return m_kd_fn->Calc(error);
+	}
+	else
+	{
+		return m_parameter.kd;
+	}
+}
+
+void DirControlAlgorithm4::SetKpFunction(const int kp_fn)
+{
+	switch (kp_fn)
+	{
+	default:
+		assert(false);
+
+	case 0:
+		m_kp_fn = nullptr;
+		return;
+
+	case 1:
+		m_kp_fn.reset(new KpFunction1);
+		break;
+
+	case 2:
+		m_kp_fn.reset(new KpFunction2);
+		break;
+
+	case 3:
+		m_kp_fn.reset(new KpFunction3);
+		break;
+
+	case 4:
+		m_kp_fn.reset(new KpFunction4);
+		break;
+	}
+
+	m_kp_fn->SetMultiplier(m_parameter.kp);
+}
+
+void DirControlAlgorithm4::SetKdFunction(const int kd_fn)
+{
+	switch (kd_fn)
+	{
+	default:
+		assert(false);
+
+	case 0:
+		m_kd_fn = nullptr;
+		return;
+
+	case 1:
+		m_kd_fn.reset(new KdFunction1);
+		break;
+
+	case 2:
+		m_kd_fn.reset(new KdFunction2);
+		break;
+
+	case 3:
+		m_kd_fn.reset(new KdFunction3);
+		break;
+
+	case 4:
+		m_kd_fn.reset(new KdFunction4);
+		break;
+
+	case 5:
+		m_kd_fn.reset(new KdFunction5);
+		break;
+
+	case 6:
+		m_kd_fn.reset(new KdFunction6);
+		break;
+	}
+
+	m_kd_fn->SetMultiplier(m_parameter.kd);
 }
 
 }

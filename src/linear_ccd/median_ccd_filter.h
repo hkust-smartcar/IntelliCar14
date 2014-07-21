@@ -24,6 +24,7 @@ public:
 			const std::bitset<libsc::k60::LinearCcd::SENSOR_W> &data);
 
 private:
+	int m_full_window;
 	int m_window;
 	int m_mid;
 };

@@ -247,7 +247,7 @@ DirControlAlgorithm::DirControlAlgorithm(Car *car)
 		: m_car(car),
 		  m_flat_gyro_angle(0),
 
-		  m_track_analyzer(CONSTANTS[0].edge),
+		  m_track_analyzer(CCD_MID_POS, CONSTANTS[0].edge),
 		  //m_mid_filter(0.0000005f, 5.0f, 64, 1),
 		  m_mid_filter(KALMAN_FILTER_Q, KALMAN_FILTER_R, 64, 1),
 		  m_filtered_mid(0),
@@ -306,7 +306,7 @@ int16_t DirControlAlgorithm::Process(const bitset<LinearCcd::SENSOR_W> &ccd_data
 
 	if (!m_is_explicit_set_turn_hint)
 	{
-		const int error = abs(CCD_MID_POS - m_track_analyzer.GetMid());
+		const int error = abs(CCD_MID_POS - m_track_analyzer.GetCurrMid());
 		/*
 		if (error > 16)
 		{
@@ -327,13 +327,13 @@ int16_t DirControlAlgorithm::Process(const bitset<LinearCcd::SENSOR_W> &ccd_data
 		if (error > 18)
 		{
 			m_servo_pid.SetSetpoint(CCD_MID_POS
-					+ ((CCD_MID_POS > m_track_analyzer.GetMid()) ? 5 : -5));
+					+ ((CCD_MID_POS > m_track_analyzer.GetCurrMid()) ? 5 : -5));
 			SetTurnHint(TurnHint::TURN);
 		}
 		else if (error > 11)
 		{
 			m_servo_pid.SetSetpoint(CCD_MID_POS
-					+ ((CCD_MID_POS > m_track_analyzer.GetMid()) ? 1 : -1));
+					+ ((CCD_MID_POS > m_track_analyzer.GetCurrMid()) ? 1 : -1));
 			SetTurnHint(TurnHint::PRE_TURN);
 		}
 		else
@@ -354,10 +354,10 @@ int16_t DirControlAlgorithm::Process(const bitset<LinearCcd::SENSOR_W> &ccd_data
 	m_filtered_mid = m_track_analyzer.GetPrevMid();
 	if (m_turning == INT16_MIN)
 	{
-		const int error = abs(CCD_MID_POS - m_track_analyzer.GetMid());
+		const int error = abs(CCD_MID_POS - m_track_analyzer.GetCurrMid());
 		if (error <= 18)
 		{
-			m_filtered_mid = m_mid_filter.Filter(m_track_analyzer.GetMid());
+			m_filtered_mid = m_mid_filter.Filter(m_track_analyzer.GetCurrMid());
 		}
 		// Opposite direction
 		m_turning = -m_servo_pid.Calc(m_filtered_mid);

@@ -221,7 +221,7 @@ void AutoProgram4::ServoPass()
 		if (++print_error_pid_delay_ >= 5)
 		{
 			m_car.UartSendStr(String::Format("%d %.3f %.3f %d\n",
-					64 - m_dir_control.GetMid(),
+					m_dir_control.GetParameter().mid - m_dir_control.GetMid(),
 					m_dir_control.GetP(),
 					m_dir_control.GetD(),
 					-turn));
@@ -352,11 +352,19 @@ void AutoProgram4::CountDownStage()
 	m_car.SetBuzzerBeep(true);
 	System::DelayMs(100);
 	m_car.SetBuzzerBeep(false);
-	System::DelayMs(500);
+	System::DelayMs(400);
 	m_car.SetBuzzerBeep(true);
 	System::DelayMs(100);
 	m_car.SetBuzzerBeep(false);
-	System::DelayMs(500);
+	System::DelayMs(400);
+	m_car.SetBuzzerBeep(true);
+	System::DelayMs(100);
+	m_car.SetBuzzerBeep(false);
+	System::DelayMs(400);
+	m_car.SetBuzzerBeep(true);
+	System::DelayMs(100);
+	m_car.SetBuzzerBeep(false);
+	System::DelayMs(400);
 	m_car.SetBuzzerBeep(true);
 	System::DelayMs(100);
 	m_car.SetBuzzerBeep(false);

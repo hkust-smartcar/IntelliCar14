@@ -59,7 +59,7 @@ DirControlAlgorithm4::DirControlAlgorithm4(Car *const car,
 		: m_car(car),
 		  m_parameter(parameter),
 
-		  m_track_analyzer(parameter.edge),
+		  m_track_analyzer(parameter.mid, parameter.edge),
 		  m_mid_filter(KALMAN_FILTER_Q, KALMAN_FILTER_R, Config::GetCcdMid(), 1),
 		  m_filtered_mid(0),
 		  m_pid(parameter.mid, 0.0f, 0.0f, 0.0f),
@@ -82,6 +82,7 @@ void DirControlAlgorithm4::SetParameter(const Parameter &parameter)
 	m_pid.SetSetpoint(m_parameter.mid);
 	SetKpFunction(m_parameter.kp_fn);
 	SetKdFunction(m_parameter.kd_fn);
+	m_track_analyzer.SetMid(m_parameter.mid);
 	m_track_analyzer.SetEdge(m_parameter.edge);
 }
 
@@ -130,7 +131,7 @@ void DirControlAlgorithm4::ProcessFill()
 	if (m_track_analyzer.IsAllWhite())
 	{
 		m_case = 50;
-		if (m_white_out_time++ < 2)
+		if (m_white_out_time++ < 5)
 		{
 			m_turning = m_prev_turning;
 		}
@@ -213,7 +214,7 @@ int DirControlAlgorithm4::ConcludeMid()
 	//return m_track_analyzer.GetMid();
 	static bool is_turn_ = false;
 
-	const int error = m_parameter.mid - m_track_analyzer.GetMid();
+	const int error = m_parameter.mid - m_track_analyzer.GetCurrMid();
 	int new_mid;
 	if (abs(error) < 6)
 	{
@@ -223,12 +224,12 @@ int DirControlAlgorithm4::ConcludeMid()
 					KALMAN_FILTER_R, m_parameter.mid, 1);
 		}
 		is_turn_ = false;
-		new_mid = m_mid_filter.Filter(m_track_analyzer.GetMid());
+		new_mid = m_mid_filter.Filter(m_track_analyzer.GetCurrMid());
 	}
 	else
 	{
 		is_turn_ = true;
-		new_mid = m_track_analyzer.GetMid();
+		new_mid = m_track_analyzer.GetCurrMid();
 	}
 
 	//const int new_error = m_parameter.mid - new_mid;
@@ -238,7 +239,7 @@ int DirControlAlgorithm4::ConcludeMid()
 
 float DirControlAlgorithm4::ConcludeKp()
 {
-	const int error = m_parameter.mid - m_track_analyzer.GetMid();
+	const int error = m_parameter.mid - m_track_analyzer.GetCurrMid();
 	if (m_kp_fn)
 	{
 		return m_kp_fn->Calc(error);
@@ -251,7 +252,7 @@ float DirControlAlgorithm4::ConcludeKp()
 
 float DirControlAlgorithm4::ConcludeKd()
 {
-	const int error = m_parameter.mid - m_track_analyzer.GetMid();
+	const int error = m_parameter.mid - m_track_analyzer.GetCurrMid();
 	if (m_kd_fn)
 	{
 		return m_kd_fn->Calc(error);

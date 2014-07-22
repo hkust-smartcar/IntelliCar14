@@ -18,10 +18,15 @@ namespace linear_ccd
 class TrackAnalyzer
 {
 public:
-	explicit TrackAnalyzer(const int edge);
+	TrackAnalyzer(const int mid, const int edge);
 
 	void Analyze(const std::bitset<libsc::k60::LinearCcd::SENSOR_W> &ccd_data);
 	void Reset();
+
+	void SetMid(const int mid)
+	{
+		m_mid = mid;
+	}
 
 	void SetEdge(const int edge)
 	{
@@ -33,9 +38,9 @@ public:
 		return m_prev_mid;
 	}
 
-	int GetMid() const
+	int GetCurrMid() const
 	{
-		return m_mid;
+		return m_curr_mid;
 	}
 
 	int GetLeftEdge() const
@@ -66,9 +71,10 @@ private:
 	void HandleLeftSided();
 	void HandleRightSided();
 
+	int m_mid;
 	int m_edge;
 	int m_prev_mid;
-	int m_mid;
+	int m_curr_mid;
 	int m_left_edge;
 	int m_right_edge;
 	bool m_is_all_black;

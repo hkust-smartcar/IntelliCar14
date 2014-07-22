@@ -15,7 +15,6 @@
 
 #define VALID_PIXEL Config::GetCcdValidPixel()
 #define VALID_OFFSET Config::GetCcdValidPixelOffset()
-#define CCD_MID_POS 64
 
 using namespace libsc::k60;
 using namespace std;
@@ -23,10 +22,11 @@ using namespace std;
 namespace linear_ccd
 {
 
-TrackAnalyzer::TrackAnalyzer(const int edge)
-		: m_edge(edge),
-		  m_prev_mid(CCD_MID_POS),
-		  m_mid(CCD_MID_POS),
+TrackAnalyzer::TrackAnalyzer(const int mid, const int edge)
+		: m_mid(mid),
+		  m_edge(edge),
+		  m_prev_mid(mid),
+		  m_curr_mid(mid),
 		  m_left_edge(-1),
 		  m_right_edge(-1),
 		  m_is_all_black(false),
@@ -35,14 +35,14 @@ TrackAnalyzer::TrackAnalyzer(const int edge)
 
 void TrackAnalyzer::Analyze(const bitset<LinearCcd::SENSOR_W> &ccd_data)
 {
-	m_prev_mid = m_mid;
-	m_mid = 0;
+	m_prev_mid = m_curr_mid;
+	m_curr_mid = 0;
 	m_left_edge = -1;
 	m_right_edge = -1;
 
 	if (IsFill(ccd_data))
 	{
-		m_mid = m_prev_mid;
+		m_curr_mid = m_prev_mid;
 		return;
 	}
 
@@ -63,8 +63,8 @@ void TrackAnalyzer::Analyze(const bitset<LinearCcd::SENSOR_W> &ccd_data)
 
 void TrackAnalyzer::Reset()
 {
-	m_prev_mid = CCD_MID_POS;
-	m_mid = CCD_MID_POS;
+	m_prev_mid = m_mid;
+	m_curr_mid = m_mid;
 }
 
 bool TrackAnalyzer::IsFill(const bitset<LinearCcd::SENSOR_W> &ccd_data)
@@ -113,7 +113,7 @@ void TrackAnalyzer::DetectEdge(const bitset<LinearCcd::SENSOR_W> &ccd_data)
 
 void TrackAnalyzer::HandleCentered()
 {
-	m_mid = (m_left_edge + m_right_edge) / 2;
+	m_curr_mid = (m_left_edge + m_right_edge) / 2;
 }
 
 void TrackAnalyzer::HandleLeftSided()
@@ -122,7 +122,7 @@ void TrackAnalyzer::HandleLeftSided()
 	const int detect_w = m_right_edge - VALID_OFFSET;
 	const int imaginery_w = std::max<int>(track_w - detect_w, 0);
 	const int imaginery_left_edge = VALID_OFFSET - imaginery_w;
-	m_mid = (imaginery_left_edge + m_right_edge) / 2;
+	m_curr_mid = (imaginery_left_edge + m_right_edge) / 2;
 }
 
 void TrackAnalyzer::HandleRightSided()
@@ -131,7 +131,7 @@ void TrackAnalyzer::HandleRightSided()
 	const int detect_w = VALID_PIXEL - m_left_edge;
 	const int imaginery_w = std::max<int>(track_w - detect_w, 0);
 	const int imaginery_right_edge = VALID_PIXEL + imaginery_w;
-	m_mid = (m_left_edge + imaginery_right_edge) / 2;
+	m_curr_mid = (m_left_edge + imaginery_right_edge) / 2;
 }
 
 }

@@ -231,7 +231,7 @@ void TuningMenu4::AdjustValueTurn(const bool is_positive)
 		{
 			data[0] = m_turn_kp->GetId();
 			float value = TunableInt::AsFloat(m_turn_kp->GetValue());
-			value += (is_positive ? 0.02f : -0.02f) * GetMultiplier();
+			value += (is_positive ? 0.01f : -0.01f) * GetMultiplier();
 			memcpy(data + 1, &value, 4);
 		}
 		break;
@@ -249,7 +249,7 @@ void TuningMenu4::AdjustValueTurn(const bool is_positive)
 		{
 			data[0] = m_turn_kd->GetId();
 			float value = TunableInt::AsFloat(m_turn_kd->GetValue());
-			value += (is_positive ? 0.02f : -0.02f) * GetMultiplier();
+			value += (is_positive ? 0.01f : -0.01f) * GetMultiplier();
 			memcpy(data + 1, &value, 4);
 		}
 		break;

@@ -49,7 +49,7 @@ DirControlAlgorithm3::DirControlAlgorithm3(Car *const car,
 		: m_car(car),
 		  m_parameter(parameter),
 
-		  m_track_analyzer(parameter.edge),
+		  m_track_analyzer(CCD_MID_POS, parameter.edge),
 		  m_mid_filter(KALMAN_FILTER_Q, KALMAN_FILTER_R, 64, 1),
 		  m_filtered_mid(0),
 		  m_pid(CCD_MID_POS, parameter.kp, 0.0f, parameter.kd),
@@ -194,7 +194,7 @@ int DirControlAlgorithm3::ConcludeMid()
 {
 	static bool is_turn_ = false;
 
-	const int error = CCD_MID_POS - m_track_analyzer.GetMid();
+	const int error = CCD_MID_POS - m_track_analyzer.GetCurrMid();
 	int new_mid;
 	if (abs(error) < 6)
 	{
@@ -204,12 +204,12 @@ int DirControlAlgorithm3::ConcludeMid()
 					KALMAN_FILTER_R, 64, 1);
 		}
 		is_turn_ = false;
-		new_mid = m_mid_filter.Filter(m_track_analyzer.GetMid());
+		new_mid = m_mid_filter.Filter(m_track_analyzer.GetCurrMid());
 	}
 	else
 	{
 		is_turn_ = true;
-		new_mid = m_track_analyzer.GetMid();
+		new_mid = m_track_analyzer.GetCurrMid();
 	}
 
 	const int new_error = CCD_MID_POS - new_mid;
@@ -219,13 +219,13 @@ int DirControlAlgorithm3::ConcludeMid()
 
 float DirControlAlgorithm3::ConcludeKp()
 {
-	const int error = CCD_MID_POS - m_track_analyzer.GetMid();
+	const int error = CCD_MID_POS - m_track_analyzer.GetCurrMid();
 	return m_kp_func.Calc(error);
 }
 
 float DirControlAlgorithm3::ConcludeKd()
 {
-	const int error = CCD_MID_POS - m_track_analyzer.GetMid();
+	const int error = CCD_MID_POS - m_track_analyzer.GetCurrMid();
 	return 0;
 	return m_kd_func.Calc(error);
 }

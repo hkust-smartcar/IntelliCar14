@@ -214,7 +214,7 @@ Dac::Config GetDacConfig()
 }
 
 CalibrateProgram::CalibrateProgram()
-		: m_track_analyzer(0),
+		: m_track_analyzer(Config::GetCcdMid(), 0),
 		  m_ccd_filter(2),
 		  m_dac(GetDacConfig())
 {}
@@ -257,7 +257,7 @@ void CalibrateProgram::Run()
 #ifdef DEBUG_CALIBRATE_EDGE
 					m_car.LcdSetRow(row);
 					m_car.LcdPrintString(libutil::String::Format("%d %d %d\n",
-							m_track_analyzer.GetMid(),
+							m_track_analyzer.GetCurrMid(),
 							m_track_analyzer.GetLeftEdge(),
 							m_track_analyzer.GetRightEdge()).c_str(), 0xFFFF);
 					if (++row > 4)
@@ -277,7 +277,7 @@ void CalibrateProgram::Run()
 					if (m_track_analyzer.GetLeftEdge() != -1
 							|| m_track_analyzer.GetRightEdge() != -1)
 					{
-						m_car.LcdDrawPixel(m_track_analyzer.GetMid(),
+						m_car.LcdDrawPixel(m_track_analyzer.GetCurrMid(),
 								y + MID_Y, libutil::GetRgb565(0xE5, 0x33, 0xB5));
 					}
 

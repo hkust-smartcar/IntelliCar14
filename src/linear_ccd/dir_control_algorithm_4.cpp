@@ -36,6 +36,7 @@
 #include "linear_ccd/kp_function_2.h"
 #include "linear_ccd/kp_function_3.h"
 #include "linear_ccd/kp_function_4.h"
+#include "linear_ccd/kp_function_5.h"
 #include "linear_ccd/kpid_function.h"
 #include "linear_ccd/track_analyzer.h"
 #include "linear_ccd/turn_hint.h"
@@ -44,7 +45,7 @@ using namespace libsc::k60;
 using namespace std;
 
 #define KALMAN_FILTER_Q 0.0000005f
-#define KALMAN_FILTER_R 0.005f
+#define KALMAN_FILTER_R 0.0005f
 
 namespace linear_ccd
 {
@@ -59,7 +60,7 @@ DirControlAlgorithm4::DirControlAlgorithm4(Car *const car,
 		  m_parameter(parameter),
 
 		  m_track_analyzer(parameter.edge),
-		  m_mid_filter(KALMAN_FILTER_Q, KALMAN_FILTER_R, 64, 1),
+		  m_mid_filter(KALMAN_FILTER_Q, KALMAN_FILTER_R, Config::GetCcdMid(), 1),
 		  m_filtered_mid(0),
 		  m_pid(parameter.mid, 0.0f, 0.0f, 0.0f),
 		  m_kp_fn(nullptr),
@@ -76,6 +77,8 @@ DirControlAlgorithm4::DirControlAlgorithm4(Car *const car,
 void DirControlAlgorithm4::SetParameter(const Parameter &parameter)
 {
 	m_parameter = parameter;
+	m_mid_filter = libutil::KalmanFilter(KALMAN_FILTER_Q, KALMAN_FILTER_R,
+			m_parameter.mid, 1);
 	m_pid.SetSetpoint(m_parameter.mid);
 	SetKpFunction(m_parameter.kp_fn);
 	SetKdFunction(m_parameter.kd_fn);
@@ -207,6 +210,7 @@ void DirControlAlgorithm4::ProcessGeneral()
 
 int DirControlAlgorithm4::ConcludeMid()
 {
+	//return m_track_analyzer.GetMid();
 	static bool is_turn_ = false;
 
 	const int error = m_parameter.mid - m_track_analyzer.GetMid();
@@ -216,7 +220,7 @@ int DirControlAlgorithm4::ConcludeMid()
 		if (is_turn_)
 		{
 			m_mid_filter = libutil::KalmanFilter(KALMAN_FILTER_Q,
-					KALMAN_FILTER_R, 64, 1);
+					KALMAN_FILTER_R, m_parameter.mid, 1);
 		}
 		is_turn_ = false;
 		new_mid = m_mid_filter.Filter(m_track_analyzer.GetMid());
@@ -227,9 +231,9 @@ int DirControlAlgorithm4::ConcludeMid()
 		new_mid = m_track_analyzer.GetMid();
 	}
 
-	const int new_error = m_parameter.mid - new_mid;
-	return m_parameter.mid - (int)(new_error * (1 + abs(new_error) / 85.0f));
-	//return m_parameter.mid - new_error;
+	//const int new_error = m_parameter.mid - new_mid;
+	//return m_parameter.mid - (int)(new_error * (1 + abs(new_error) / 85.0f));
+	return new_mid;
 }
 
 float DirControlAlgorithm4::ConcludeKp()
@@ -283,6 +287,10 @@ void DirControlAlgorithm4::SetKpFunction(const int kp_fn)
 
 	case 4:
 		m_kp_fn.reset(new KpFunction4);
+		break;
+
+	case 5:
+		m_kp_fn.reset(new KpFunction5);
 		break;
 	}
 

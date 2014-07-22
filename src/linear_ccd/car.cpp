@@ -25,7 +25,7 @@
 #include "linear_ccd/debug.h"
 #include "linear_ccd/car.h"
 
-#define SERVO_MID_DEGREE 825
+#define SERVO_MID_DEGREE 815
 #define SERVO_AMPLITUDE 290
 #define SERVO_MAX_DEGREE (SERVO_MID_DEGREE + SERVO_AMPLITUDE)
 #define SERVO_MIN_DEGREE (SERVO_MID_DEGREE - SERVO_AMPLITUDE)

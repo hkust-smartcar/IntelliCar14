@@ -338,8 +338,8 @@ void AutoProgram4::TuningStage()
 
 	m_car.UartSendStrLiteral("|--- Paramter ---|\n");
 	m_car.UartSendStr(String::Format("%d\n", menu.GetCcdThreshold()));
-	m_car.UartSendStr(String::Format("%d, %.3f, %d, %.3f, %d\n",
-			dp.edge, dp.kp, dp.kp_fn, dp.kd, dp.kd_fn));
+	m_car.UartSendStr(String::Format("%d, %d, %.3f, %d, %.3f, %d\n",
+			dp.mid, dp.edge, dp.kp, dp.kp_fn, dp.kd, dp.kd_fn));
 	m_car.UartSendStr(String::Format("%d, %.3f, %.3f, %.3f, %d\n",
 			sp.sp, sp.kp, sp.ki, sp.kd, sp.turn_sp));
 	m_car.UartSendStrLiteral("|--- Paramter End ---|\n");

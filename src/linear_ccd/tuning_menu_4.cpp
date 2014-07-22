@@ -39,18 +39,18 @@ TuningMenu4::TuningMenu4(Car *const car)
 	m_mid = manager->Register("", TunableInt::Type::INTEGER,
 			Config::GetCcdMid());
 	m_edge = manager->Register("", TunableInt::Type::INTEGER,
-			24);
+			23);
 	m_turn_kp = manager->Register("", TunableInt::Type::REAL,
 			TunableInt::AsUnsigned(1.00f));
 	m_turn_kp_fn = manager->Register("", TunableInt::Type::INTEGER,
-			4);
+			5);
 	m_turn_kd = manager->Register("", TunableInt::Type::REAL,
 			TunableInt::AsUnsigned(1.00f));
 	m_turn_kd_fn = manager->Register("", TunableInt::Type::INTEGER,
-			4);
+			6);
 
 	m_speed_sp = manager->Register("", TunableInt::Type::INTEGER,
-			410);
+			385);
 	m_speed_kp = manager->Register("", TunableInt::Type::REAL,
 			TunableInt::AsUnsigned(104.5f));
 	m_speed_ki = manager->Register("", TunableInt::Type::REAL,
@@ -58,7 +58,7 @@ TuningMenu4::TuningMenu4(Car *const car)
 	m_speed_kd = manager->Register("", TunableInt::Type::REAL,
 			TunableInt::AsUnsigned(0.05f));
 	m_speed_turn_sp = manager->Register("", TunableInt::Type::INTEGER,
-			400);
+			375);
 }
 
 void TuningMenu4::Run()

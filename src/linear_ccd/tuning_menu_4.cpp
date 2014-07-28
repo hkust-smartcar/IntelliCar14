@@ -41,16 +41,16 @@ TuningMenu4::TuningMenu4(Car *const car)
 	m_edge = manager->Register("", TunableInt::Type::INTEGER,
 			23);
 	m_turn_kp = manager->Register("", TunableInt::Type::REAL,
-			TunableInt::AsUnsigned(1.00f));
+			TunableInt::AsUnsigned(1.07f));
 	m_turn_kp_fn = manager->Register("", TunableInt::Type::INTEGER,
 			5);
 	m_turn_kd = manager->Register("", TunableInt::Type::REAL,
-			TunableInt::AsUnsigned(1.00f));
+			TunableInt::AsUnsigned(1.07f));
 	m_turn_kd_fn = manager->Register("", TunableInt::Type::INTEGER,
 			6);
 
 	m_speed_sp = manager->Register("", TunableInt::Type::INTEGER,
-			385);
+			370);
 	m_speed_kp = manager->Register("", TunableInt::Type::REAL,
 			TunableInt::AsUnsigned(104.5f));
 	m_speed_ki = manager->Register("", TunableInt::Type::REAL,
@@ -58,7 +58,7 @@ TuningMenu4::TuningMenu4(Car *const car)
 	m_speed_kd = manager->Register("", TunableInt::Type::REAL,
 			TunableInt::AsUnsigned(0.05f));
 	m_speed_turn_sp = manager->Register("", TunableInt::Type::INTEGER,
-			375);
+			360);
 }
 
 void TuningMenu4::Run()
@@ -94,11 +94,51 @@ void TuningMenu4::Run()
 					break;
 
 				case Joystick::State::LEFT:
-					SwitchPage(m_page - 1);
+					{
+						const bitset<5> &ss = m_car->GetSwitchState();
+						if (ss[0])
+						{
+							switch (m_page)
+							{
+							default:
+							case Page::TURN:
+								AdjustValueTurn(false);
+								break;
+
+							case Page::SPEED:
+								AdjustValueSpeed(false);
+								break;
+							}
+						}
+						else
+						{
+							SwitchPage(m_page - 1);
+						}
+					}
 					break;
 
 				case Joystick::State::RIGHT:
-					SwitchPage(m_page + 1);
+					{
+						const bitset<5> &ss = m_car->GetSwitchState();
+						if (ss[0])
+						{
+							switch (m_page)
+							{
+							default:
+							case Page::TURN:
+								AdjustValueTurn(true);
+								break;
+
+							case Page::SPEED:
+								AdjustValueSpeed(true);
+								break;
+							}
+						}
+						else
+						{
+							SwitchPage(m_page + 1);
+						}
+					}
 					break;
 
 				case Joystick::State::SELECT:

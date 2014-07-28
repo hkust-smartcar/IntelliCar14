@@ -37,6 +37,7 @@
 #include "linear_ccd/kp_function_3.h"
 #include "linear_ccd/kp_function_4.h"
 #include "linear_ccd/kp_function_5.h"
+#include "linear_ccd/kp_function_6.h"
 #include "linear_ccd/kpid_function.h"
 #include "linear_ccd/track_analyzer.h"
 #include "linear_ccd/turn_hint.h"
@@ -292,6 +293,10 @@ void DirControlAlgorithm4::SetKpFunction(const int kp_fn)
 
 	case 5:
 		m_kp_fn.reset(new KpFunction5);
+		break;
+
+	case 6:
+		m_kp_fn.reset(new KpFunction6);
 		break;
 	}
 

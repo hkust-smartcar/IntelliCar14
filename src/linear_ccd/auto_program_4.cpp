@@ -119,15 +119,15 @@ void AutoProgram4::BrakePass()
 		}
 		else if (abs_count < 160)
 		{
-			m_car.SetMotorPower(1800 * ((count > 0) ? -1 : 1));
+			m_car.SetMotorPower(1900 * ((count > 0) ? -1 : 1));
 		}
 		else if (abs_count < 300)
 		{
-			m_car.SetMotorPower(2800 * ((count > 0) ? -1 : 1));
+			m_car.SetMotorPower(2900 * ((count > 0) ? -1 : 1));
 		}
 		else
 		{
-			m_car.SetMotorPower(3500 * ((count > 0) ? -1 : 1));
+			m_car.SetMotorPower(3600 * ((count > 0) ? -1 : 1));
 		}
 
 		m_brake_state.prev_run = time;

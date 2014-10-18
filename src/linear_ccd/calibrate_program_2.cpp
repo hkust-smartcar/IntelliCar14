@@ -5,21 +5,19 @@
  * Copyright (c) 2014 HKUST SmartCar Team
  */
 
-#include <mini_common.h>
 #include <cstdint>
 #include <cstring>
 
 #include <bitset>
 
-#include <MK60_adc.h>
-
+#include <libbase/k60/adc.h>
 #include <libbase/k60/gpio.h>
 
 #include <libsc/k60/joystick.h>
-#include <libsc/com/lcd.h>
-#include <libsc/com/lcd_console.h>
+#include <libsc/k60/lcd_console.h>
 #include <libsc/k60/linear_ccd.h>
 #include <libsc/k60/simple_buzzer.h>
+#include <libsc/k60/st7735r.h>
 #include <libsc/k60/system.h>
 #include <libsc/k60/timer.h>
 #include <libutil/misc.h>
@@ -50,14 +48,21 @@ constexpr int MAX_ADC = MID_ADC + ADC_AMPLITUDE;
 Gpo::Config GetClkGpoConfig()
 {
 	Gpo::Config config;
-	config.pin = PinConfig::Name::PTC2;
+	config.pin = Pin::Name::kPtc2;
 	return config;
 }
 
 Gpo::Config GetSiGpoConfig()
 {
 	Gpo::Config config;
-	config.pin = PinConfig::Name::PTC3;
+	config.pin = Pin::Name::kPtc3;
+	return config;
+}
+
+Adc::Config GetAdcConfig()
+{
+	Adc::Config config;
+	config.adc = Adc::Name::kAdc1Ad4A;
 	return config;
 }
 
@@ -77,12 +82,12 @@ CalibrateProgram2::CalibrateProgram2()
 
 void CalibrateProgram2::Run()
 {
-	adc_init(ADC1_SE4a);
+	Adc adc(GetAdcConfig());
 	Gpio clk_pin(GetClkGpoConfig());
 	Gpio si_pin(GetSiGpoConfig());
 	SimpleBuzzer buzzer(0);
 	Joystick joystick(0);
-	Lcd lcd(true);
+	St7735r lcd(true);
 	LcdConsole console(&lcd);
 	bool is_print = true;
 
@@ -91,7 +96,7 @@ void CalibrateProgram2::Run()
 	int delay = 5;
 	int row = 0;
 	int joystick_delay = 0;
-	constexpr int MID_Y = libsc::Lcd::H / 2;
+	constexpr int MID_Y = St7735r::kH / 2;
 	int y = 0;
 
 	while (true)
@@ -99,7 +104,7 @@ void CalibrateProgram2::Run()
 		const Timer::TimerInt now = System::Time();
 		if (Timer::TimeDiff(now, ccd_time) >= Config::GetTurnInterval())
 		{
-			const uint8_t buf_size = LinearCcd::SENSOR_W;
+			const uint8_t buf_size = LinearCcd::kSensorW;
 			uint8_t buf[buf_size] = {};
 			uint32_t total_adc = 0;
 
@@ -115,16 +120,16 @@ void CalibrateProgram2::Run()
 			si_pin.Set(false);
 			CcdDelay();
 
-			for (int i = 0; i < LinearCcd::SENSOR_W; ++i)
+			for (int i = 0; i < LinearCcd::kSensorW; ++i)
 			{
 				clk_pin.Set(false);
 				CcdDelay();
-				uint8_t adc = adc_once(ADC1_SE4a, ADC_8bit);
+				uint8_t adc_v = adc.GetResult();
 				clk_pin.Set(true);
 				CcdDelay();
 
 				total_adc += adc;
-				buf[i] = (Clamp<uint8_t>(MIN_ADC, adc, MAX_ADC) - MIN_ADC)
+				buf[i] = (Clamp<uint8_t>(MIN_ADC, adc_v, MAX_ADC) - MIN_ADC)
 						/ (float)(MAX_ADC - MIN_ADC) * 0xFF;
 			}
 

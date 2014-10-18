@@ -5,16 +5,15 @@
  * Copyright (c) 2014 HKUST SmartCar Team
  */
 
-#include <syscall.h>
-#include <vectors.h>
-
 #include <cstdint>
 
 #include <bitset>
 #include <functional>
 #include <string>
 
-#include <log.h>
+#include <libbase/log.h>
+#include <libbase/syscall.h>
+#include <libbase/k60/vectors.h>
 
 #include <libsc/k60/linear_ccd.h>
 #include <libsc/k60/system.h>
@@ -43,7 +42,10 @@ namespace linear_ccd
 AutoProgram4 *AutoProgram4::m_instance = nullptr;
 
 AutoProgram4::AutoProgram4()
-		: m_ccd_filter(2),
+		: m_is_ignore_light_sensor(true),
+		  m_car(std::bind(&AutoProgram4::OnLightSensorDetectHandler, this,
+				  placeholders::_1)),
+		  m_ccd_filter(2),
 		  m_dir_control(&m_car),
 		  m_speed_control(&m_car),
 		  m_start(0),
@@ -61,8 +63,8 @@ AutoProgram4::~AutoProgram4()
 
 void AutoProgram4::Run()
 {
-	__g_fwrite_handler = FwriteHandler;
-	__g_hard_fault_handler = HardFaultHandler;
+	g_fwrite_handler = FwriteHandler;
+	g_hard_fault_handler = HardFaultHandler;
 
 	TuningStage();
 	CountDownStage();
@@ -201,8 +203,8 @@ void AutoProgram4::ServoPass()
 
 		m_car.StartCcdSample();
 
-		const bitset<LinearCcd::SENSOR_W> &raw_sample = m_car.GetCcdSample(0);
-		const bitset<LinearCcd::SENSOR_W> &filtered_sample =
+		const bitset<LinearCcd::kSensorW> &raw_sample = m_car.GetCcdSample(0);
+		const bitset<LinearCcd::kSensorW> &filtered_sample =
 				m_ccd_filter.Filter(raw_sample);
 		const int32_t turn = m_dir_control.Process(filtered_sample);
 		m_car.SetTurning(Clamp<int>(-100, turn, 100));
@@ -370,13 +372,10 @@ void AutoProgram4::CountDownStage()
 	m_car.SetBuzzerBeep(false);
 
 	m_car.UpdateEncoder();
-	m_car.SetLightSensorListener(0, std::bind(
-			&AutoProgram4::OnLightSensorDetectHandler, this, placeholders::_1));
-	m_car.SetLightSensorListener(1, std::bind(
-			&AutoProgram4::OnLightSensorDetectHandler, this, placeholders::_1));
+	m_is_ignore_light_sensor = false;
 	m_dir_control.OnFinishWarmUp();
 	m_speed_control.OnFinishWarmUp();
-	for (int i = 0; i < LinearCcd::SENSOR_W; ++i)
+	for (int i = 0; i < LinearCcd::kSensorW; ++i)
 	{
 		m_car.CcdSampleProcess();
 	}
@@ -414,6 +413,11 @@ void AutoProgram4::LcdRedraw()
 
 void AutoProgram4::OnLightSensorDetectHandler(const uint8_t id)
 {
+	if (m_is_ignore_light_sensor)
+	{
+		return;
+	}
+
 #ifdef DEBUG_DISABLE_GOAL
 	return;
 #else

@@ -33,7 +33,7 @@ TrackAnalyzer::TrackAnalyzer(const int mid, const int edge)
 		  m_is_all_white(false)
 {}
 
-void TrackAnalyzer::Analyze(const bitset<LinearCcd::SENSOR_W> &ccd_data)
+void TrackAnalyzer::Analyze(const bitset<LinearCcd::kSensorW> &ccd_data)
 {
 	m_prev_mid = m_curr_mid;
 	m_curr_mid = 0;
@@ -67,7 +67,7 @@ void TrackAnalyzer::Reset()
 	m_curr_mid = m_mid;
 }
 
-bool TrackAnalyzer::IsFill(const bitset<LinearCcd::SENSOR_W> &ccd_data)
+bool TrackAnalyzer::IsFill(const bitset<LinearCcd::kSensorW> &ccd_data)
 {
 	m_is_all_black = true;
 	m_is_all_white = true;
@@ -86,7 +86,7 @@ bool TrackAnalyzer::IsFill(const bitset<LinearCcd::SENSOR_W> &ccd_data)
 	return (m_is_all_black || m_is_all_white);
 }
 
-void TrackAnalyzer::DetectEdge(const bitset<LinearCcd::SENSOR_W> &ccd_data)
+void TrackAnalyzer::DetectEdge(const bitset<LinearCcd::kSensorW> &ccd_data)
 {
 	m_left_edge = -1;
 	for (int i = libutil::ClampVal<int>(VALID_OFFSET, m_prev_mid,

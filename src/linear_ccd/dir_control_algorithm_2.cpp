@@ -73,7 +73,7 @@ void DirControlAlgorithm2::OnFinishWarmUp()
 }
 
 int32_t DirControlAlgorithm2::Process(
-		const bitset<LinearCcd::SENSOR_W> &ccd_data)
+		const bitset<LinearCcd::kSensorW> &ccd_data)
 {
 	m_case = 0;
 	m_turning = INT16_MIN;

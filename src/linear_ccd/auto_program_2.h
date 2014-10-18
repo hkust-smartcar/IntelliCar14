@@ -87,6 +87,7 @@ private:
 	static int FwriteHandler(int, char *ptr, int len);
 	static void HardFaultHandler(void);
 
+	bool m_is_ignore_light_sensor;
 	Car m_car;
 
 	BrakeState m_brake_state;

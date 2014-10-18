@@ -6,9 +6,9 @@
  */
 
 #include <libsc/k60/joystick.h>
-#include <libsc/com/lcd.h>
-#include <libsc/com/lcd_console.h>
+#include <libsc/k60/lcd_console.h>
 #include <libsc/k60/simple_buzzer.h>
+#include <libsc/k60/st7735r.h>
 #include <libsc/k60/system.h>
 #include <libsc/k60/timer.h>
 #include <libsc/k60/trs_d05.h>
@@ -51,7 +51,7 @@ public:
 private:
 	void Redraw();
 
-	Lcd m_lcd;
+	St7735r m_lcd;
 	LcdConsole m_console;
 
 	int m_select;

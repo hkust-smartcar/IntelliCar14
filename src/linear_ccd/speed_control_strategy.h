@@ -9,8 +9,6 @@
 #ifndef LINEAR_CCD_SPEED_CONTROL_STRATEGY_H_
 #define LINEAR_CCD_SPEED_CONTROL_STRATEGY_H_
 
-#include <mini_common.h>
-
 #include "linear_ccd/turn_hint.h"
 
 namespace linear_ccd

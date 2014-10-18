@@ -34,7 +34,7 @@ public:
 	explicit DirControlAlgorithm(Car *car);
 
 	void OnFinishWarmUp(Car *car);
-	int16_t Process(const std::bitset<libsc::k60::LinearCcd::SENSOR_W> &ccd_data);
+	int16_t Process(const std::bitset<libsc::k60::LinearCcd::kSensorW> &ccd_data);
 	void SetMode(const Uint mode);
 	void SetTurnHint(const TurnHint hint);
 

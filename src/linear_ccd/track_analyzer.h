@@ -20,7 +20,7 @@ class TrackAnalyzer
 public:
 	TrackAnalyzer(const int mid, const int edge);
 
-	void Analyze(const std::bitset<libsc::k60::LinearCcd::SENSOR_W> &ccd_data);
+	void Analyze(const std::bitset<libsc::k60::LinearCcd::kSensorW> &ccd_data);
 	void Reset();
 
 	void SetMid(const int mid)
@@ -64,8 +64,8 @@ public:
 	}
 
 private:
-	bool IsFill(const std::bitset<libsc::k60::LinearCcd::SENSOR_W> &ccd_data);
-	void DetectEdge(const std::bitset<libsc::k60::LinearCcd::SENSOR_W> &ccd_data);
+	bool IsFill(const std::bitset<libsc::k60::LinearCcd::kSensorW> &ccd_data);
+	void DetectEdge(const std::bitset<libsc::k60::LinearCcd::kSensorW> &ccd_data);
 
 	void HandleCentered();
 	void HandleLeftSided();

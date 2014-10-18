@@ -5,19 +5,15 @@
  * Copyright (c) 2014 HKUST SmartCar Team
  */
 
-#include <mini_common.h>
-#include <hw_common.h>
-#include <syscall.h>
-#include <vectors.h>
-
 #include <cstdint>
 #include <cstdlib>
 
 #include <bitset>
 #include <string>
 
-#include <log.h>
-#include <MK60_dac.h>
+#include <libbase/log.h>
+#include <libbase/syscall.h>
+#include <libbase/k60/vectors.h>
 
 #include <libsc/k60/linear_ccd.h>
 #include <libsc/k60/system.h>
@@ -35,6 +31,7 @@
 #include "linear_ccd/speed_control_1.h"
 #include "linear_ccd/turn_hint.h"
 
+using namespace libbase::k60;
 using namespace libsc::k60;
 using namespace std;
 
@@ -71,8 +68,8 @@ AutoProgram::~AutoProgram()
 
 void AutoProgram::Run()
 {
-	__g_fwrite_handler = FwriteHandler;
-	__g_hard_fault_handler = HardFaultHandler;
+	g_fwrite_handler = FwriteHandler;
+	g_hard_fault_handler = HardFaultHandler;
 	InitialStage();
 
 	while (true)
@@ -109,10 +106,11 @@ void AutoProgram::InitialStage()
 	m_car.GetBeepManager()->Beep(100);
 
 #ifdef LINEAR_CCD_2014
-	dac_init(DAC0);
-	dac_out(DAC0, Config::GetCcdThreshold(0));
+	//dac_init(DAC0);
+	//dac_out(DAC0, Config::GetCcdThreshold(0));
 	//dac_init(DAC1);
 	//dac_out(DAC1, Config::GetCcdThreshold(1));
+	m_car.SetCcdDacThreshold(Config::GetCcdThreshold(0));
 
 	const Timer::TimerInt time = System::Time();
 	while (Timer::TimeDiff(System::Time(), time) < INITIAL_DELAY)
@@ -200,7 +198,7 @@ void AutoProgram::InitialStage()
 	m_speed_control.OnFinishWarmUp();
 
 	// Dump first CCD sample
-	for (int i = 0; i < LinearCcd::SENSOR_W; ++i)
+	for (int i = 0; i < LinearCcd::kSensorW; ++i)
 	{
 		m_car.CcdSampleProcess();
 	}
@@ -264,7 +262,7 @@ void AutoProgram::ServoPass()
 
 /*
 		//const int16_t up_turn = 0;
-		const bitset<LinearCcd::SENSOR_W> &ccd_data_up = m_ccd_filter.Filter(
+		const bitset<LinearCcd::kSensorW> &ccd_data_up = m_ccd_filter.Filter(
 				m_car.GetCcdSample(1));
 		const int16_t up_turn = m_dir_control[1].Process(ccd_data_up);
 #ifdef DEBUG_PRINT_CASE
@@ -294,10 +292,10 @@ void AutoProgram::ServoPass()
 			m_dir_control[0].SetTurnHint(TurnHint::PRE_TURN);
 		}
 */
-		const bitset<LinearCcd::SENSOR_W> ccd_data_up;
+		const bitset<LinearCcd::kSensorW> ccd_data_up;
 		const int16_t up_turn = 0;
 
-		const bitset<LinearCcd::SENSOR_W> &ccd_data_down = m_ccd_filter.Filter(
+		const bitset<LinearCcd::kSensorW> &ccd_data_down = m_ccd_filter.Filter(
 				m_car.GetCcdSample(0));
 		const int16_t down_turn = m_dir_control[0].Process(ccd_data_down);
 #ifdef DEBUG_PRINT_CASE
@@ -399,29 +397,29 @@ void AutoProgram::ServoPass()
 				&& !Config::IsLcdPause())
 		{
 			static int y = 0;
-			static const int MID_Y = libsc::Lcd::H / 2;
-			const uint8_t buf_size = LinearCcd::SENSOR_W;
+			static const int MID_Y = St7735r::kH / 2;
+			const uint8_t buf_size = LinearCcd::kSensorW;
 			uint8_t buf[buf_size] = {};
 			/*
-			for (int i = 0; i < LinearCcd::SENSOR_W; ++i)
+			for (int i = 0; i < LinearCcd::kSensorW; ++i)
 			{
 				buf[i] = ccd_data_up[i] ? 0xFF : 0x00;
 			}
 			m_car.LcdDrawGrayscalePixelBuffer(0, y, buf_size, 1, buf);
 			if (m_dir_control[1].GetMid() >= 0
-					&& m_dir_control[1].GetMid() < LinearCcd::SENSOR_W)
+					&& m_dir_control[1].GetMid() < LinearCcd::kSensorW)
 			{
 				m_car.LcdDrawPixel(m_dir_control[1].GetMid(), y + MID_Y,
 						libutil::GetRgb565(0xFF, 0, 0x33));
 			}
 			*/
-			for (int i = 0; i < LinearCcd::SENSOR_W; ++i)
+			for (int i = 0; i < LinearCcd::kSensorW; ++i)
 			{
 				buf[i] = ccd_data_down[i] ? 0xFF : 0x00;
 			}
 			m_car.LcdDrawGrayscalePixelBuffer(0, y + MID_Y, buf_size, 1, buf);
 			if (m_dir_control[0].GetMid() >= 0
-					&& m_dir_control[0].GetMid() < LinearCcd::SENSOR_W)
+					&& m_dir_control[0].GetMid() < LinearCcd::kSensorW)
 			{
 				m_car.LcdDrawPixel(m_dir_control[0].GetMid(), y + MID_Y,
 						libutil::GetRgb565(0xE5, 0x33, 0xB5));
@@ -437,8 +435,8 @@ void AutoProgram::ServoPass()
 #ifdef DEBUG_PRINT_CCD
 		// Send CCD data through UART
 		string str;
-		str.reserve(LinearCcd::SENSOR_W + 1);
-		for (int i = 3; i < LinearCcd::SENSOR_W - 3; ++i)
+		str.reserve(LinearCcd::kSensorW + 1);
+		for (int i = 3; i < LinearCcd::kSensorW - 3; ++i)
 		{
 			str += ccd_data[i] ? '#' : '.';
 		}

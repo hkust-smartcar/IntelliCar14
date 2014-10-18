@@ -17,16 +17,15 @@
 
 #include <libbase/k60/dac.h>
 #include <libsc/k60/button.h>
-#include <libsc/com/encoder.h>
+#include <libsc/k60/encoder.h>
 #include <libsc/k60/joystick.h>
-#include <libsc/com/lcd.h>
-#include <libsc/com/lcd_console.h>
+#include <libsc/k60/lcd_console.h>
 #include <libsc/k60/led.h>
 #include <libsc/k60/light_sensor.h>
 #include <libsc/k60/linear_ccd.h>
 #include <libsc/k60/motor.h>
-#include <libsc/com/mpu6050.h>
 #include <libsc/k60/simple_buzzer.h>
+#include <libsc/k60/st7735r.h>
 #include <libsc/k60/switch.h>
 #include <libsc/k60/trs_d05.h>
 #include <libsc/k60/uart_device.h>
@@ -40,6 +39,7 @@ namespace linear_ccd
 class Car
 {
 public:
+	explicit Car(const libsc::k60::LightSensor::OnDetectListener &light_sensor_listener);
 	Car();
 
 	/**
@@ -100,7 +100,7 @@ public:
 		return m_ccds[id].SampleProcess();
 	}
 
-	const std::bitset<libsc::k60::LinearCcd::SENSOR_W>& GetCcdSample(
+	const std::bitset<libsc::k60::LinearCcd::kSensorW>& GetCcdSample(
 			const uint8_t id) const
 	{
 		return m_ccds[id].GetData();
@@ -123,7 +123,7 @@ public:
 
 	void UpdateGyro()
 	{
-		m_gyro.Update();
+		//m_gyro.Update();
 	}
 
 	void UartSendStr(const char *str)
@@ -275,12 +275,6 @@ public:
 		return state;
 	}
 
-	void SetLightSensorListener(const uint8_t id,
-			const libsc::k60::LightSensor::OnDetectListener &listener)
-	{
-		m_light_sensors[id].SetOnDetectListener(listener);
-	}
-
 	bool IsLightSensorDetected(const uint8_t id)
 	{
 		return m_light_sensors[id].IsDetected();
@@ -288,7 +282,8 @@ public:
 
 	float GetGyroAngle() const
 	{
-		return m_gyro.GetAngle()[0];
+		//return m_gyro.GetAngle()[0];
+		return 0;
 	}
 
 	libsc::k60::Joystick::State GetJoystickState() const
@@ -311,11 +306,10 @@ private:
 #else
 	libsc::k60::Button m_buttons[4];
 #endif
-	libsc::Encoder m_encoder;
-	libsc::Mpu6050 m_gyro;
+	libsc::k60::Encoder m_encoder;
 	libsc::k60::Joystick m_joystick;
-	libsc::Lcd m_lcd;
-	libsc::LcdConsole m_lcd_console;
+	libsc::k60::St7735r m_lcd;
+	libsc::k60::LcdConsole m_lcd_console;
 	libsc::k60::Led m_leds[4];
 	libsc::k60::LightSensor m_light_sensors[2];
 	libsc::k60::LinearCcd m_ccds[2];

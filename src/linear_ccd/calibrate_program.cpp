@@ -10,8 +10,6 @@
 
 #include <bitset>
 
-#include <MK60_dac.h>
-
 #include <libbase/k60/dac.h>
 #include <libsc/k60/joystick.h>
 #include <libsc/k60/linear_ccd.h>
@@ -202,36 +200,24 @@ void TuningMenu::Redraw(const bool is_clear_screen)
 			0xFFFF, (m_select == 0) ? 0x35BC : 0);
 }
 
-Dac::Config GetDacConfig()
-{
-	Dac::Config config;
-	config.module = 0;
-	config.data[0] = 0;
-	config.data_size = 1;
-	return config;
-}
-
 }
 
 CalibrateProgram::CalibrateProgram()
 		: m_track_analyzer(Config::GetCcdMid(), 0),
-		  m_ccd_filter(2),
-		  m_dac(GetDacConfig())
+		  m_ccd_filter(2)
 {}
 
 void CalibrateProgram::Run()
 {
 	TuningStage();
 
-	SimpleBuzzer buzzer(0);
-	Joystick joystick(0);
 	bool is_print = true;
 
 	Timer::TimerInt ccd_time = System::Time();
 	Timer::TimerInt joystick_time = System::Time();
 	int delay = 5;
 	int row = 0;
-	constexpr int MID_Y = libsc::Lcd::H / 2;
+	constexpr int MID_Y = St7735r::kH / 2;
 	int y = 0;
 	while (true)
 	{
@@ -241,8 +227,8 @@ void CalibrateProgram::Run()
 		{
 			m_car.StartCcdSample(0);
 
-			const bitset<LinearCcd::SENSOR_W> &raw_sample = m_car.GetCcdSample(0);
-			const bitset<LinearCcd::SENSOR_W> &filtered_sample =
+			const bitset<LinearCcd::kSensorW> &raw_sample = m_car.GetCcdSample(0);
+			const bitset<LinearCcd::kSensorW> &filtered_sample =
 					m_ccd_filter.Filter(raw_sample);
 			m_track_analyzer.Analyze(filtered_sample);
 
@@ -266,9 +252,9 @@ void CalibrateProgram::Run()
 					}
 #endif
 
-					const uint8_t buf_size = LinearCcd::SENSOR_W;
+					const uint8_t buf_size = LinearCcd::kSensorW;
 					uint8_t buf[buf_size] = {};
-					for (int i = 0; i < LinearCcd::SENSOR_W; ++i)
+					for (int i = 0; i < LinearCcd::kSensorW; ++i)
 					{
 						buf[i] = filtered_sample[i] ? 0xFF : 0x00;
 					}
@@ -282,7 +268,7 @@ void CalibrateProgram::Run()
 					}
 
 #ifdef DEBUG_CALIBRATE_FILTER
-					for (int i = 0; i < LinearCcd::SENSOR_W; ++i)
+					for (int i = 0; i < LinearCcd::kSensorW; ++i)
 					{
 						buf[i] = raw_sample[i] ? 0xFF : 0x00;
 					}
@@ -304,9 +290,9 @@ void CalibrateProgram::Run()
 
 		if (Timer::TimeDiff(now, joystick_time) >= Config::GetJoystickInterval())
 		{
-			if (joystick.GetState() == Joystick::State::SELECT)
+			if (m_car.GetJoystickState() == Joystick::State::SELECT)
 			{
-				BeepManager::GetInstance(&buzzer)->Beep(100);
+				m_car.GetBeepManager()->Beep(100);
 				is_print ^= true;
 			}
 		}
@@ -318,8 +304,7 @@ void CalibrateProgram::TuningStage()
 	TuningMenu menu(&m_car);
 	menu.Run();
 
-	m_dac.SetData(menu.GetCcdThreshold());
-
+	m_car.SetCcdDacThreshold(menu.GetCcdThreshold());
 	m_car.LcdClear(0);
 	System::DelayMs(250);
 }

@@ -272,7 +272,7 @@ void DirControlAlgorithm::OnFinishWarmUp(Car *car)
 	m_servo_pid.Restart();
 }
 
-int16_t DirControlAlgorithm::Process(const bitset<LinearCcd::SENSOR_W> &ccd_data)
+int16_t DirControlAlgorithm::Process(const bitset<LinearCcd::kSensorW> &ccd_data)
 {
 /*
 	if (DetectSlope())

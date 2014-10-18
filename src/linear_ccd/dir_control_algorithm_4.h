@@ -47,7 +47,7 @@ public:
 	}
 
 	void OnFinishWarmUp();
-	int32_t Process(const std::bitset<libsc::k60::LinearCcd::SENSOR_W> &ccd_data);
+	int32_t Process(const std::bitset<libsc::k60::LinearCcd::kSensorW> &ccd_data);
 
 
 	int GetMid() const

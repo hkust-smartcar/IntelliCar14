@@ -5,15 +5,15 @@
  * Copyright (c) 2014 HKUST SmartCar Team
  */
 
-#include <syscall.h>
-#include <vectors.h>
-
 #include <cstdint>
 
 #include <algorithm>
 #include <bitset>
 #include <functional>
 #include <string>
+
+#include <libbase/syscall.h>
+#include <libbase/k60/vectors.h>
 
 #include <libsc/k60/linear_ccd.h>
 #include <libsc/k60/system.h>
@@ -57,8 +57,8 @@ ManualProgram3::~ManualProgram3()
 
 void ManualProgram3::Run()
 {
-	__g_fwrite_handler = FwriteHandler;
-	__g_hard_fault_handler = HardFaultHandler;
+	g_fwrite_handler = FwriteHandler;
+	g_hard_fault_handler = HardFaultHandler;
 
 	TuningStage();
 
@@ -83,8 +83,8 @@ void ManualProgram3::ServoPass()
 
 		m_car.StartCcdSample();
 
-		const bitset<LinearCcd::SENSOR_W> &raw_sample = m_car.GetCcdSample(0);
-		const bitset<LinearCcd::SENSOR_W> &filtered_sample =
+		const bitset<LinearCcd::kSensorW> &raw_sample = m_car.GetCcdSample(0);
+		const bitset<LinearCcd::kSensorW> &filtered_sample =
 				m_ccd_filter.Filter(raw_sample);
 		const int32_t turn = m_dir_control.Process(filtered_sample);
 		m_car.SetTurning(Clamp<int>(-100, turn, 100));
@@ -184,7 +184,7 @@ void ManualProgram3::TuningStage()
 
 	m_car.UpdateEncoder();
 	m_dir_control.OnFinishWarmUp();
-	for (int i = 0; i < LinearCcd::SENSOR_W; ++i)
+	for (int i = 0; i < LinearCcd::kSensorW; ++i)
 	{
 		m_car.CcdSampleProcess();
 	}

@@ -20,8 +20,8 @@ class MedianCcdFilter
 public:
 	explicit MedianCcdFilter(const int window);
 
-	std::bitset<libsc::k60::LinearCcd::SENSOR_W> Filter(
-			const std::bitset<libsc::k60::LinearCcd::SENSOR_W> &data);
+	std::bitset<libsc::k60::LinearCcd::kSensorW> Filter(
+			const std::bitset<libsc::k60::LinearCcd::kSensorW> &data);
 
 private:
 	int m_full_window;

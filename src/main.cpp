@@ -1,5 +1,7 @@
 #include <libbase/k60/mcg.h>
 
+#include <libsc/lib_guard.h>
+
 #if defined(LINEAR_CCD)
 	#include "linear_ccd/linear_ccd_app.h"
 #elif defined(CAMERA)
@@ -29,6 +31,7 @@ Mcg::Config Mcg::GetMcgConfig()
 
 int main()
 {
+	LIBSC_GUARD();
 #if defined(LINEAR_CCD)
 	linear_ccd::LinearCcdApp app;
 #elif defined(CAMERA)

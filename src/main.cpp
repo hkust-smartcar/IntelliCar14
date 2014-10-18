@@ -1,3 +1,5 @@
+#include <libbase/k60/mcg.h>
+
 #if defined(LINEAR_CCD)
 	#include "linear_ccd/linear_ccd_app.h"
 #elif defined(CAMERA)
@@ -5,6 +7,25 @@
 #elif defined(MAGNETIC)
 	#include "magnetic/magnetic_app.h"
 #endif
+
+namespace libbase
+{
+namespace k60
+{
+
+Mcg::Config Mcg::GetMcgConfig()
+{
+	Mcg::Config config;
+	config.external_oscillator_khz = 50000;
+	config.core_clock_khz = 100000;
+	config.bus_clock_khz = 50000;
+	config.flexbus_clock_khz = 50000;
+	config.flash_clock_khz = 25000;
+	return config;
+}
+
+}
+}
 
 int main()
 {

@@ -235,7 +235,7 @@ public:
 	 *
 	 * @return
 	 */
-#ifdef LINEAR_CCD_2014
+#ifdef K60_2014_CCD
 	std::bitset<2> GetButtonState() const
 	{
 		std::bitset<2> state = 0;

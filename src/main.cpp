@@ -2,11 +2,11 @@
 
 #include <libsc/lib_guard.h>
 
-#if defined(LINEAR_CCD)
+#if defined(K60_2014_CCD) || defined(K60_2013_CCD)
 	#include "linear_ccd/linear_ccd_app.h"
-#elif defined(CAMERA)
+#elif defined(K60_2014_CAMERA)
 	#include "camera/camera_app.h"
-#elif defined(MAGNETIC)
+#elif defined(K60_2014_MAGNETIC)
 	#include "magnetic/magnetic_app.h"
 #endif
 

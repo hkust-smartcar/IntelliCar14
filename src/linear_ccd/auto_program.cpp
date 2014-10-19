@@ -105,7 +105,7 @@ void AutoProgram::InitialStage()
 	iprintf("Initialize\n");
 	m_car.GetBeepManager()->Beep(100);
 
-#ifdef LINEAR_CCD_2014
+#ifdef K60_2014_CCD
 	//dac_init(DAC0);
 	//dac_out(DAC0, Config::GetCcdThreshold(0));
 	//dac_init(DAC1);

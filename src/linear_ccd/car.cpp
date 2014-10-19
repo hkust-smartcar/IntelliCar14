@@ -52,7 +52,7 @@ Dac::Config GetDacConfig()
 Car::Car(const LightSensor::OnDetectListener &light_sensor_listener)
 		: m_dac(GetDacConfig()),
 		  m_buttons{Button(0), Button(1)
-#ifndef LINEAR_CCD_2014
+#ifndef K60_2014_CCD
 				  , Button(2), Button(3)
 #endif
 				  },

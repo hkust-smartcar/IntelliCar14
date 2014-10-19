@@ -301,7 +301,7 @@ private:
 
 	libbase::k60::Dac m_dac;
 
-#ifdef LINEAR_CCD_2014
+#ifdef K60_2014_CCD
 	libsc::k60::Button m_buttons[2];
 #else
 	libsc::k60::Button m_buttons[4];

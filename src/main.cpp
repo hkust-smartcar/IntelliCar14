@@ -32,7 +32,7 @@ Mcg::Config Mcg::GetMcgConfig()
 int main()
 {
 	LIBSC_GUARD();
-#if defined(LINEAR_CCD)
+#if defined(K60_2014_CCD)
 	linear_ccd::LinearCcdApp app;
 #elif defined(CAMERA)
 	camera::CameraApp app;

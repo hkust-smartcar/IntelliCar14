@@ -219,7 +219,7 @@ public:
 
 	int16_t GetEncoderCount()
 	{
-		return m_encoder.GetCount();
+		return -(m_encoder.GetCount() >> 2);
 	}
 
 	int16_t GetTurning() const;

@@ -13,7 +13,7 @@
 #include <bitset>
 
 #include <libutil/kalman_filter.h>
-#include <libutil/pid_controller.h>
+#include <libutil/positional_pid_controller.h>
 
 #include "linear_ccd/track_analyzer.h"
 #include "linear_ccd/turn_hint.h"
@@ -99,7 +99,7 @@ private:
 	libutil::KalmanFilter m_mid_filter;
 	int m_filtered_mid;
 
-	libutil::PidController<int32_t, int32_t> m_servo_pid;
+	libutil::PositionalPidController<int32_t, int32_t> m_servo_pid;
 
 	uint8_t m_case;
 	int16_t m_turning;

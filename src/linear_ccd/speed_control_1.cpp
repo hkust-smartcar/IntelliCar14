@@ -11,8 +11,7 @@
 #include <libsc/k60/system.h>
 #include <libsc/k60/timer.h>
 #include <libutil/misc.h>
-#include <libutil/pid_controller.h>
-#include <libutil/pid_controller.tcc>
+#include <libutil/positional_pid_controller.h>
 
 #include "linear_ccd/config.h"
 #include "linear_ccd/beep_manager.h"
@@ -373,7 +372,7 @@ SpeedControl1::SpeedControl1(Car *car)
 void SpeedControl1::OnFinishWarmUp()
 {
 	m_start_time = System::Time();
-	m_pid.Restart();
+	m_pid.Reset();
 }
 
 int SpeedControl1::Control()
@@ -385,7 +384,7 @@ int SpeedControl1::Control()
 	iprintf("%d\n", count);
 #endif
 
-	int power = m_pid.Calc(time, count);
+	int power = m_pid.Calc(count);
 	/*
 	if (abs(car->GetTurning()) <= Config::GetTurnThreshold())
 	{
@@ -415,7 +414,7 @@ int SpeedControl1::Control()
 		if (m_is_startup)
 		{
 			m_is_startup = false;
-			m_pid.Restart();
+			m_pid.Reset();
 		}
 /*
 		if (abs(power - car->GetMotorPower()) > 3500)

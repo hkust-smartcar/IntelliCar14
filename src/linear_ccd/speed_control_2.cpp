@@ -12,8 +12,7 @@
 #include <libsc/k60/system.h>
 #include <libsc/k60/timer.h>
 #include <libutil/misc.h>
-#include <libutil/pid_controller.h>
-#include <libutil/pid_controller.tcc>
+#include <libutil/positional_pid_controller.h>
 
 #include "linear_ccd/debug.h"
 #include "linear_ccd/config.h"
@@ -62,7 +61,7 @@ void SpeedControl2::SetParameter(const Parameter &parameter)
 void SpeedControl2::OnFinishWarmUp()
 {
 	m_start_time = System::Time();
-	m_pid.Restart();
+	m_pid.Reset();
 }
 
 int SpeedControl2::Control()
@@ -74,7 +73,7 @@ int SpeedControl2::Control()
 	iprintf("%d\n", count);
 #endif
 
-	int power = m_pid.Calc(time, count);
+	int power = m_pid.Calc(count);
 
 	// Prevent the output going crazy due to initially idle encoder
 	if (m_is_startup && time < 250 + m_start_time)
@@ -89,7 +88,7 @@ int SpeedControl2::Control()
 		if (m_is_startup)
 		{
 			m_is_startup = false;
-			m_pid.Restart();
+			m_pid.Reset();
 		}
 /*
 		if (abs(power - car->GetMotorPower()) > 3500)

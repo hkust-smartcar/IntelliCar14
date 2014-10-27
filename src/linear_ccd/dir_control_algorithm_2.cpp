@@ -10,13 +10,10 @@
 #include <bitset>
 
 #include <libsc/k60/linear_ccd.h>
-#include <libutil/incremental_pid_controller.h>
-#include <libutil/incremental_pid_controller.tcc>
 #include <libutil/kalman_filter.h>
 #include <libutil/misc.h>
 #include <libutil/misc.h>
-#include <libutil/pid_controller.h>
-#include <libutil/pid_controller.tcc>
+#include <libutil/positional_pid_controller.h>
 #include <libutil/string.h>
 
 #include "linear_ccd/debug.h"
@@ -69,7 +66,7 @@ void DirControlAlgorithm2::SetParameter(const Parameter &parameter)
 
 void DirControlAlgorithm2::OnFinishWarmUp()
 {
-	m_pid.Restart();
+	m_pid.Reset();
 }
 
 int32_t DirControlAlgorithm2::Process(

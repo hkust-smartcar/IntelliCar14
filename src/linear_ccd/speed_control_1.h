@@ -13,7 +13,7 @@
 
 #include <libbase/k60/misc_utils.h>
 #include <libsc/k60/timer.h>
-#include <libutil/pid_controller.h>
+#include <libutil/positional_pid_controller.h>
 
 #include "linear_ccd/speed_control_strategy.h"
 #include "linear_ccd/turn_hint.h"
@@ -45,7 +45,7 @@ public:
 
 private:
 	Car *m_car;
-	libutil::PidController<int32_t, int32_t> m_pid;
+	libutil::PositionalPidController<int32_t, int32_t> m_pid;
 	uint8_t m_mode;
 	uint8_t m_straight_mode_delay;
 

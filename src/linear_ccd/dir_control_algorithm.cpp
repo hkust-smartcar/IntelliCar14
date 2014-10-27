@@ -16,8 +16,7 @@
 
 #include <libutil/kalman_filter.h>
 #include <libutil/misc.h>
-#include <libutil/pid_controller.h>
-#include <libutil/pid_controller.tcc>
+#include <libutil/positional_pid_controller.h>
 #include <libutil/string.h>
 
 #include "linear_ccd/beep_manager.h"
@@ -269,7 +268,7 @@ void DirControlAlgorithm::OnFinishWarmUp(Car *car)
 	//m_gyro_filter = libutil::KalmanFilter(0.005f, 0.05f, car->GetGyroAngle(),
 	//		1.0f);
 	m_flat_gyro_angle = static_cast<int16_t>(car->GetGyroAngle());
-	m_servo_pid.Restart();
+	m_servo_pid.Reset();
 }
 
 int16_t DirControlAlgorithm::Process(const bitset<LinearCcd::kSensorW> &ccd_data)
@@ -463,7 +462,7 @@ void DirControlAlgorithm::SetMode(const Uint mode)
 	m_servo_pid.SetKp(CONSTANTS[m_mode].kp);
 	m_servo_pid.SetKi(CONSTANTS[m_mode].ki);
 	m_servo_pid.SetKd(CONSTANTS[m_mode].kd);
-	m_servo_pid.Restart();
+	m_servo_pid.Reset();
 }
 
 void DirControlAlgorithm::SetTurnHint(const TurnHint hint)

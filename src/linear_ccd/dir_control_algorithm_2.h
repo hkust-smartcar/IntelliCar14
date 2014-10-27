@@ -13,7 +13,7 @@
 
 #include <libbase/k60/misc_utils.h>
 #include <libutil/kalman_filter.h>
-#include <libutil/pid_controller.h>
+#include <libutil/positional_pid_controller.h>
 
 #include "linear_ccd/kd_function_2.h"
 #include "linear_ccd/kp_function_2.h"
@@ -104,7 +104,7 @@ private:
 	TrackAnalyzer m_track_analyzer;
 	libutil::KalmanFilter m_mid_filter;
 	int m_filtered_mid;
-	libutil::PidController<int32_t, int32_t> m_pid;
+	libutil::PositionalPidController<int32_t, int32_t> m_pid;
 	KpFunction2 m_kp_func;
 	KdFunction2 m_kd_func;
 

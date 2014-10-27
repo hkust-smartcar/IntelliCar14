@@ -20,9 +20,8 @@
 #include <libsc/k60/system.h>
 #include <libsc/k60/timer.h>
 #include <libutil/misc.h>
+#include <libutil/remote_var_manager.h>
 #include <libutil/string.h>
-#include <libutil/tunable_int_manager.h>
-#include <libutil/tunable_int_manager.tcc>
 
 #include "linear_ccd/debug.h"
 #include "linear_ccd/config.h"
@@ -53,57 +52,57 @@ public:
 
 	uint32_t GetCcdThreshold() const
 	{
-		return m_ccd_threshold->GetValue();
+		return m_ccd_threshold->GetInt();
 	}
 
-	float GetEdge() const
+	uint32_t GetEdge() const
 	{
-		return m_edge->GetValue();
+		return m_edge->GetInt();
 	}
 
 	float GetTurnKp() const
 	{
-		return TunableInt::AsFloat(m_turn_kp->GetValue());
+		return m_turn_kp->GetReal();
 	}
 
 	float GetTurnKd() const
 	{
-		return TunableInt::AsFloat(m_turn_kd->GetValue());
+		return m_turn_kd->GetReal();
 	}
 
 	float GetTurnTurnKp() const
 	{
-		return TunableInt::AsFloat(m_turn_turn_kp->GetValue());
+		return m_turn_turn_kp->GetReal();
 	}
 
 	float GetTurnTurnKd() const
 	{
-		return TunableInt::AsFloat(m_turn_turn_kd->GetValue());
+		return m_turn_turn_kd->GetReal();
 	}
 
-	int GetSpeedSp() const
+	uint32_t GetSpeedSp() const
 	{
-		return m_speed_sp->GetValue();
+		return m_speed_sp->GetInt();
 	}
 
 	float GetSpeedKp() const
 	{
-		return TunableInt::AsFloat(m_speed_kp->GetValue());
+		return m_speed_kp->GetReal();
 	}
 
 	float GetSpeedKi() const
 	{
-		return TunableInt::AsFloat(m_speed_ki->GetValue());
+		return m_speed_ki->GetReal();
 	}
 
 	float GetSpeedKd() const
 	{
-		return TunableInt::AsFloat(m_speed_kd->GetValue());
+		return m_speed_kd->GetReal();
 	}
 
-	int GetSpeedTurnSp() const
+	uint32_t GetSpeedTurnSp() const
 	{
-		return m_speed_turn_sp->GetValue();
+		return m_speed_turn_sp->GetInt();
 	}
 
 private:
@@ -132,18 +131,18 @@ private:
 	Page m_page;
 	int m_select;
 
-	const TunableInt *m_ccd_threshold;
-	const TunableInt *m_edge;
-	const TunableInt *m_turn_kp;
-	const TunableInt *m_turn_kd;
-	const TunableInt *m_turn_turn_kp;
-	const TunableInt *m_turn_turn_kd;
+	RemoteVarManager::Var *m_ccd_threshold;
+	RemoteVarManager::Var *m_edge;
+	RemoteVarManager::Var *m_turn_kp;
+	RemoteVarManager::Var *m_turn_kd;
+	RemoteVarManager::Var *m_turn_turn_kp;
+	RemoteVarManager::Var *m_turn_turn_kd;
 
-	const TunableInt *m_speed_sp;
-	const TunableInt *m_speed_kp;
-	const TunableInt *m_speed_ki;
-	const TunableInt *m_speed_kd;
-	const TunableInt *m_speed_turn_sp;
+	RemoteVarManager::Var *m_speed_sp;
+	RemoteVarManager::Var *m_speed_kp;
+	RemoteVarManager::Var *m_speed_ki;
+	RemoteVarManager::Var *m_speed_kd;
+	RemoteVarManager::Var *m_speed_turn_sp;
 };
 
 TuningMenu::TuningMenu(Car *const car)
@@ -151,36 +150,37 @@ TuningMenu::TuningMenu(Car *const car)
 		  m_page(Page::TURN),
 		  m_select(0)
 {
-	auto manager = m_car->GetTunableIntManager<TUNABLE_INT_COUNT>();
+	m_car->EnableRemoteVar(TUNABLE_INT_COUNT);
+	auto manager = m_car->GetRemoteVarManager();
 
-	m_ccd_threshold = manager->Register("", TunableInt::Type::INTEGER,
-			Config::GetCcdThreshold(0));
-	m_edge = manager->Register("", TunableInt::Type::INTEGER,
-			27);
-	m_turn_kp = manager->Register("", TunableInt::Type::REAL,
-			TunableInt::AsUnsigned(1.00f));
-	m_turn_kd = manager->Register("", TunableInt::Type::REAL,
-			TunableInt::AsUnsigned(1.00f));
-	m_turn_turn_kp = manager->Register("", TunableInt::Type::REAL,
-			TunableInt::AsUnsigned(13.24f));
-	m_turn_turn_kd = manager->Register("", TunableInt::Type::REAL,
-			TunableInt::AsUnsigned(0.42f));
+	m_ccd_threshold = manager->Register("", RemoteVarManager::Var::Type::INT);
+	m_ccd_threshold->SetInt(Config::GetCcdThreshold(0));
+	m_edge = manager->Register("", RemoteVarManager::Var::Type::INT);
+	m_edge->SetInt(27);
+	m_turn_kp = manager->Register("", RemoteVarManager::Var::Type::REAL);
+	m_turn_kp->SetReal(1.00f);
+	m_turn_kd = manager->Register("", RemoteVarManager::Var::Type::REAL);
+	m_turn_kd->SetReal(1.00f);
+	m_turn_turn_kp = manager->Register("", RemoteVarManager::Var::Type::REAL);
+	m_turn_turn_kp->SetReal(13.24f);
+	m_turn_turn_kd = manager->Register("", RemoteVarManager::Var::Type::REAL);
+	m_turn_turn_kd->SetReal(0.42f);
 
-	m_speed_sp = manager->Register("", TunableInt::Type::INTEGER,
-			390);
-	m_speed_kp = manager->Register("", TunableInt::Type::REAL,
-			TunableInt::AsUnsigned(104.5f));
-	m_speed_ki = manager->Register("", TunableInt::Type::REAL,
-			TunableInt::AsUnsigned(100.0f));
-	m_speed_kd = manager->Register("", TunableInt::Type::REAL,
-			TunableInt::AsUnsigned(0.05f));
-	m_speed_turn_sp = manager->Register("", TunableInt::Type::INTEGER,
-			390);
+	m_speed_sp = manager->Register("", RemoteVarManager::Var::Type::INT);
+	m_speed_sp->SetInt(390);
+	m_speed_kp = manager->Register("", RemoteVarManager::Var::Type::REAL);
+	m_speed_kp->SetReal(104.5f);
+	m_speed_ki = manager->Register("", RemoteVarManager::Var::Type::REAL);
+	m_speed_ki->SetReal(100.0f);
+	m_speed_kd = manager->Register("", RemoteVarManager::Var::Type::REAL);
+	m_speed_kd->SetReal(0.05f);
+	m_speed_turn_sp = manager->Register("", RemoteVarManager::Var::Type::INT);
+	m_speed_turn_sp->SetInt(390);
 }
 
 void TuningMenu::Run()
 {
-	auto manager = m_car->GetTunableIntManager<TUNABLE_INT_COUNT>();
+	auto manager = m_car->GetRemoteVarManager();
 	manager->Start(false);
 	m_car->SetUartLoopMode(true);
 	Redraw(true);
@@ -320,7 +320,7 @@ void TuningMenu::AdjustValueTurn(const bool is_positive)
 	case 0:
 		{
 			data[0] = m_ccd_threshold->GetId();
-			uint32_t value = m_ccd_threshold->GetValue();
+			uint32_t value = m_ccd_threshold->GetInt();
 			value += (is_positive ? 1 : -1) * GetMultiplier();
 			memcpy(data + 1, &value, 4);
 		}
@@ -329,7 +329,7 @@ void TuningMenu::AdjustValueTurn(const bool is_positive)
 	case 1:
 		{
 			data[0] = m_edge->GetId();
-			uint32_t value = m_edge->GetValue();
+			uint32_t value = m_edge->GetInt();
 			value += (is_positive ? 1 : -1) * GetMultiplier();
 			memcpy(data + 1, &value, 4);
 		}
@@ -338,7 +338,7 @@ void TuningMenu::AdjustValueTurn(const bool is_positive)
 	case 2:
 		{
 			data[0] = m_turn_kp->GetId();
-			float value = TunableInt::AsFloat(m_turn_kp->GetValue());
+			float value = m_turn_kp->GetReal();
 			value += (is_positive ? 0.05f : -0.05f) * GetMultiplier();
 			memcpy(data + 1, &value, 4);
 		}
@@ -347,7 +347,7 @@ void TuningMenu::AdjustValueTurn(const bool is_positive)
 	case 3:
 		{
 			data[0] = m_turn_kd->GetId();
-			float value = TunableInt::AsFloat(m_turn_kd->GetValue());
+			float value = m_turn_kd->GetReal();
 			value += (is_positive ? 0.005f : -0.005f) * GetMultiplier();
 			memcpy(data + 1, &value, 4);
 		}
@@ -356,7 +356,7 @@ void TuningMenu::AdjustValueTurn(const bool is_positive)
 	case 4:
 		{
 			data[0] = m_turn_turn_kp->GetId();
-			float value = TunableInt::AsFloat(m_turn_turn_kp->GetValue());
+			float value = m_turn_turn_kp->GetReal();
 			value += (is_positive ? 0.15f : -0.15f) * GetMultiplier();
 			memcpy(data + 1, &value, 4);
 		}
@@ -365,7 +365,7 @@ void TuningMenu::AdjustValueTurn(const bool is_positive)
 	case 5:
 		{
 			data[0] = m_turn_turn_kd->GetId();
-			float value = TunableInt::AsFloat(m_turn_turn_kd->GetValue());
+			float value = m_turn_turn_kd->GetReal();
 			value += (is_positive ? 0.03f : -0.03f) * GetMultiplier();
 			memcpy(data + 1, &value, 4);
 		}
@@ -386,7 +386,7 @@ void TuningMenu::AdjustValueSpeed(const bool is_positive)
 	case 0:
 		{
 			data[0] = m_speed_sp->GetId();
-			uint32_t value = m_speed_sp->GetValue();
+			uint32_t value = m_speed_sp->GetInt();
 			value += (is_positive ? 5 : -5) * GetMultiplier();
 			memcpy(data + 1, &value, 4);
 		}
@@ -395,7 +395,7 @@ void TuningMenu::AdjustValueSpeed(const bool is_positive)
 	case 1:
 		{
 			data[0] = m_speed_kp->GetId();
-			float value = TunableInt::AsFloat(m_speed_kp->GetValue());
+			float value = m_speed_kp->GetReal();
 			value += (is_positive ? 0.5f : -0.5f) * GetMultiplier();
 			memcpy(data + 1, &value, 4);
 		}
@@ -404,7 +404,7 @@ void TuningMenu::AdjustValueSpeed(const bool is_positive)
 	case 2:
 		{
 			data[0] = m_speed_ki->GetId();
-			float value = TunableInt::AsFloat(m_speed_ki->GetValue());
+			float value = m_speed_ki->GetReal();
 			value += (is_positive ? 0.5f : -0.5f) * GetMultiplier();
 			memcpy(data + 1, &value, 4);
 		}
@@ -413,7 +413,7 @@ void TuningMenu::AdjustValueSpeed(const bool is_positive)
 	case 3:
 		{
 			data[0] = m_speed_kd->GetId();
-			float value = TunableInt::AsFloat(m_speed_kd->GetValue());
+			float value = m_speed_kd->GetReal();
 			value += (is_positive ? 0.02f : -0.02f) * GetMultiplier();
 			memcpy(data + 1, &value, 4);
 		}
@@ -422,7 +422,7 @@ void TuningMenu::AdjustValueSpeed(const bool is_positive)
 	case 4:
 		{
 			data[0] = m_speed_turn_sp->GetId();
-			uint32_t value = m_speed_turn_sp->GetValue();
+			uint32_t value = m_speed_turn_sp->GetInt();
 			value += (is_positive ? 5 : -5) * GetMultiplier();
 			memcpy(data + 1, &value, 4);
 		}
@@ -448,22 +448,22 @@ void TuningMenu::Redraw(const bool is_clear_screen)
 		{
 			m_car->LcdPrintString("Turn\n", 0xFFFF);
 			m_car->LcdPrintString(String::Format(
-					"CCD: %d\n", m_ccd_threshold->GetValue()).c_str(),
+					"CCD: %d\n", m_ccd_threshold->GetInt()).c_str(),
 					0xFFFF, (m_select == 0) ? 0x35BC : 0);
 			m_car->LcdPrintString(String::Format(
-					"Edge: %d\n", m_edge->GetValue()).c_str(),
+					"Edge: %d\n", m_edge->GetInt()).c_str(),
 					0xFFFF, (m_select == 1) ? 0x35BC : 0);
 			m_car->LcdPrintString(String::Format(
-					"KP: %.3f\n", TunableInt::AsFloat(m_turn_kp->GetValue())).c_str(),
+					"KP: %.3f\n", m_turn_kp->GetReal()).c_str(),
 					0xFFFF, (m_select == 2) ? 0x35BC : 0);
 			m_car->LcdPrintString(String::Format(
-					"KD: %.3f\n", TunableInt::AsFloat(m_turn_kd->GetValue())).c_str(),
+					"KD: %.3f\n", m_turn_kd->GetReal()).c_str(),
 					0xFFFF, (m_select == 3) ? 0x35BC : 0);
 			m_car->LcdPrintString(String::Format(
-					"Turn KP: %.3f\n", TunableInt::AsFloat(m_turn_turn_kp->GetValue())).c_str(),
+					"Turn KP: %.3f\n", m_turn_turn_kp->GetReal()).c_str(),
 					0xFFFF, (m_select == 4) ? 0x35BC : 0);
 			m_car->LcdPrintString(String::Format(
-					"Turn KD: %.3f\n", TunableInt::AsFloat(m_turn_turn_kd->GetValue())).c_str(),
+					"Turn KD: %.3f\n", m_turn_turn_kd->GetReal()).c_str(),
 					0xFFFF, (m_select == 5) ? 0x35BC : 0);
 		}
 		break;
@@ -472,19 +472,19 @@ void TuningMenu::Redraw(const bool is_clear_screen)
 		{
 			m_car->LcdPrintString("Speed\n", 0xFFFF);
 			m_car->LcdPrintString(String::Format(
-					"SP: %d\n", m_speed_sp->GetValue()).c_str(),
+					"SP: %d\n", m_speed_sp->GetInt()).c_str(),
 					0xFFFF, (m_select == 0) ? 0x35BC : 0);
 			m_car->LcdPrintString(String::Format(
-					"KP: %.3f\n", TunableInt::AsFloat(m_speed_kp->GetValue())).c_str(),
+					"KP: %.3f\n", m_speed_kp->GetReal()).c_str(),
 					0xFFFF, (m_select == 1) ? 0x35BC : 0);
 			m_car->LcdPrintString(String::Format(
-					"KI: %.3f\n", TunableInt::AsFloat(m_speed_ki->GetValue())).c_str(),
+					"KI: %.3f\n", m_speed_ki->GetReal()).c_str(),
 					0xFFFF, (m_select == 2) ? 0x35BC : 0);
 			m_car->LcdPrintString(String::Format(
-					"KD: %.3f\n", TunableInt::AsFloat(m_speed_kd->GetValue())).c_str(),
+					"KD: %.3f\n", m_speed_kd->GetReal()).c_str(),
 					0xFFFF, (m_select == 3) ? 0x35BC : 0);
 			m_car->LcdPrintString(String::Format(
-					"Turn SP: %d\n", m_speed_turn_sp->GetValue()).c_str(),
+					"Turn SP: %d\n", m_speed_turn_sp->GetInt()).c_str(),
 					0xFFFF, (m_select == 4) ? 0x35BC : 0);
 		}
 		break;

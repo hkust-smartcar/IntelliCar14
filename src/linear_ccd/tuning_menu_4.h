@@ -10,8 +10,7 @@
 
 #include <cstdint>
 
-#include <libutil/tunable_int_manager.h>
-#include <libutil/tunable_int_manager.tcc>
+#include <libutil/remote_var_manager.h>
 
 namespace linear_ccd
 {
@@ -32,62 +31,62 @@ public:
 
 	uint32_t GetCcdThreshold() const
 	{
-		return m_ccd_threshold->GetValue();
+		return m_ccd_threshold->GetInt();
 	}
 
 	uint32_t GetMid() const
 	{
-		return m_mid->GetValue();
+		return m_mid->GetInt();
 	}
 
-	float GetEdge() const
+	uint32_t GetEdge() const
 	{
-		return m_edge->GetValue();
+		return m_edge->GetInt();
 	}
 
 	float GetTurnKp() const
 	{
-		return libutil::TunableInt::AsFloat(m_turn_kp->GetValue());
+		return m_turn_kp->GetReal();
 	}
 
 	uint32_t GetTurnKpFn() const
 	{
-		return m_turn_kp_fn->GetValue();
+		return m_turn_kp_fn->GetInt();
 	}
 
 	float GetTurnKd() const
 	{
-		return libutil::TunableInt::AsFloat(m_turn_kd->GetValue());
+		return m_turn_kd->GetReal();
 	}
 
 	uint32_t GetTurnKdFn() const
 	{
-		return m_turn_kd_fn->GetValue();
+		return m_turn_kd_fn->GetInt();
 	}
 
-	int GetSpeedSp() const
+	uint32_t GetSpeedSp() const
 	{
-		return m_speed_sp->GetValue();
+		return m_speed_sp->GetInt();
 	}
 
 	float GetSpeedKp() const
 	{
-		return libutil::TunableInt::AsFloat(m_speed_kp->GetValue());
+		return m_speed_kp->GetReal();
 	}
 
 	float GetSpeedKi() const
 	{
-		return libutil::TunableInt::AsFloat(m_speed_ki->GetValue());
+		return m_speed_ki->GetReal();
 	}
 
 	float GetSpeedKd() const
 	{
-		return libutil::TunableInt::AsFloat(m_speed_kd->GetValue());
+		return m_speed_kd->GetReal();
 	}
 
-	int GetSpeedTurnSp() const
+	uint32_t GetSpeedTurnSp() const
 	{
-		return m_speed_turn_sp->GetValue();
+		return m_speed_turn_sp->GetInt();
 	}
 
 private:
@@ -116,19 +115,19 @@ private:
 	Page m_page;
 	int m_select;
 
-	const libutil::TunableInt *m_ccd_threshold;
-	const libutil::TunableInt *m_mid;
-	const libutil::TunableInt *m_edge;
-	const libutil::TunableInt *m_turn_kp;
-	const libutil::TunableInt *m_turn_kp_fn;
-	const libutil::TunableInt *m_turn_kd;
-	const libutil::TunableInt *m_turn_kd_fn;
+	libutil::RemoteVarManager::Var *m_ccd_threshold;
+	libutil::RemoteVarManager::Var *m_mid;
+	libutil::RemoteVarManager::Var *m_edge;
+	libutil::RemoteVarManager::Var *m_turn_kp;
+	libutil::RemoteVarManager::Var *m_turn_kp_fn;
+	libutil::RemoteVarManager::Var *m_turn_kd;
+	libutil::RemoteVarManager::Var *m_turn_kd_fn;
 
-	const libutil::TunableInt *m_speed_sp;
-	const libutil::TunableInt *m_speed_kp;
-	const libutil::TunableInt *m_speed_ki;
-	const libutil::TunableInt *m_speed_kd;
-	const libutil::TunableInt *m_speed_turn_sp;
+	libutil::RemoteVarManager::Var *m_speed_sp;
+	libutil::RemoteVarManager::Var *m_speed_kp;
+	libutil::RemoteVarManager::Var *m_speed_ki;
+	libutil::RemoteVarManager::Var *m_speed_kd;
+	libutil::RemoteVarManager::Var *m_speed_turn_sp;
 };
 
 }

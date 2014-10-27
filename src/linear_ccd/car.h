@@ -6,12 +6,12 @@
  * Copyright (c) 2014 HKUST SmartCar Team
  */
 
-#ifndef LINEAR_CCD_CAR_H_
-#define LINEAR_CCD_CAR_H_
+#pragma once
 
+#include <cstddef>
 #include <cstdint>
-
 #include <bitset>
+#include <memory>
 #include <string>
 #include <utility>
 
@@ -29,7 +29,7 @@
 #include <libsc/k60/switch.h>
 #include <libsc/k60/trs_d05.h>
 #include <libsc/k60/uart_device.h>
-#include <libutil/tunable_int_manager.h>
+#include <libutil/remote_var_manager.h>
 
 #include "linear_ccd/beep_manager.h"
 
@@ -224,10 +224,11 @@ public:
 
 	int16_t GetTurning() const;
 
-	template<uint8_t size>
-	libutil::TunableIntManager<size>* GetTunableIntManager()
+	void EnableRemoteVar(const size_t size);
+
+	libutil::RemoteVarManager* GetRemoteVarManager()
 	{
-		return libutil::TunableIntManager<size>::GetInstance(&m_bt);
+		return m_remote_var_manager.get();
 	}
 
 	/**
@@ -318,8 +319,8 @@ private:
 	libsc::k60::Switch m_switches[5];
 	libsc::k60::TrsD05 m_servo;
 	libsc::k60::UartDevice m_bt;
+
+	std::unique_ptr<libutil::RemoteVarManager> m_remote_var_manager;
 };
 
 }
-
-#endif /* LINEAR_CCD_CAR_H_ */

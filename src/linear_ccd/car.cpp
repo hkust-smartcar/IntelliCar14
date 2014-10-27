@@ -6,7 +6,9 @@
  * Copyright (c) 2014 HKUST SmartCar Team
  */
 
+#include <cstddef>
 #include <cstdint>
+#include <memory>
 
 #include <libbase/k60/dac.h>
 #include <libsc/k60/button.h>
@@ -20,6 +22,7 @@
 #include <libsc/k60/switch.h>
 #include <libsc/k60/uart_device.h>
 #include <libutil/misc.h>
+#include <libutil/remote_var_manager.h>
 
 #include "linear_ccd/debug.h"
 #include "linear_ccd/car.h"
@@ -31,6 +34,7 @@
 
 using namespace libbase::k60;
 using namespace libsc::k60;
+using namespace libutil;
 
 namespace linear_ccd
 {
@@ -106,6 +110,11 @@ bool Car::IsMotorForward() const
 int16_t Car::GetTurning() const
 {
 	return (m_servo.GetDegree() - SERVO_MID_DEGREE) * -100 / SERVO_AMPLITUDE;
+}
+
+void Car::EnableRemoteVar(const size_t var_count)
+{
+	m_remote_var_manager.reset(new RemoteVarManager(&m_bt, var_count));
 }
 
 }

@@ -18,8 +18,7 @@
 #include <libsc/k60/timer.h>
 #include <libutil/misc.h>
 #include <libutil/string.h>
-#include <libutil/tunable_int_manager.h>
-#include <libutil/tunable_int_manager.tcc>
+#include <libutil/remote_var_manager.h>
 
 #include "linear_ccd/debug.h"
 #include "linear_ccd/config.h"
@@ -49,7 +48,7 @@ public:
 
 	uint32_t GetCcdThreshold() const
 	{
-		return m_ccd_threshold->GetValue();
+		return m_ccd_threshold->GetInt();
 	}
 
 private:
@@ -67,22 +66,23 @@ private:
 
 	int m_select;
 
-	const TunableInt *m_ccd_threshold;
+	RemoteVarManager::Var *m_ccd_threshold;
 };
 
 TuningMenu::TuningMenu(Car *const car)
 		: m_car(car),
 		  m_select(0)
 {
-	auto manager = m_car->GetTunableIntManager<TUNABLE_INT_COUNT>();
+	m_car->EnableRemoteVar(TUNABLE_INT_COUNT);
+	auto manager = m_car->GetRemoteVarManager();
 
-	m_ccd_threshold = manager->Register("", TunableInt::Type::INTEGER,
-			Config::GetCcdThreshold(0));
+	m_ccd_threshold = manager->Register("", RemoteVarManager::Var::Type::INT);
+	m_ccd_threshold->SetInt(Config::GetCcdThreshold(0));
 }
 
 void TuningMenu::Run()
 {
-	auto manager = m_car->GetTunableIntManager<TUNABLE_INT_COUNT>();
+	auto manager = m_car->GetRemoteVarManager();
 	manager->Start(false);
 	m_car->SetUartLoopMode(true);
 	Redraw(true);
@@ -175,7 +175,7 @@ void TuningMenu::AdjustValue(const bool is_positive)
 	case 0:
 		{
 			data[0] = m_ccd_threshold->GetId();
-			uint32_t value = m_ccd_threshold->GetValue();
+			uint32_t value = m_ccd_threshold->GetInt();
 			value += (is_positive ? 1 : -1) * GetMultiplier();
 			memcpy(data + 1, &value, 4);
 		}
@@ -196,7 +196,7 @@ void TuningMenu::Redraw(const bool is_clear_screen)
 	}
 	m_car->LcdSetRow(0);
 	m_car->LcdPrintString(String::Format(
-			"CCD: %d\n", m_ccd_threshold->GetValue()).c_str(),
+			"CCD: %d\n", m_ccd_threshold->GetInt()).c_str(),
 			0xFFFF, (m_select == 0) ? 0x35BC : 0);
 }
 

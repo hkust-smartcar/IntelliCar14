@@ -211,7 +211,7 @@ Program::Token LinearCcdApp::SelectProgram()
 
 void LinearCcdApp::Beep()
 {
-	SimpleBuzzer buzzer(0);
+	SimpleBuzzer buzzer({0});
 	buzzer.SetBeep(true);
 	System::DelayMs(100);
 	buzzer.SetBeep(false);

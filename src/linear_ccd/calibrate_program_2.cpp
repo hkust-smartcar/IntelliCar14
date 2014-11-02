@@ -85,7 +85,7 @@ void CalibrateProgram2::Run()
 	Adc adc(GetAdcConfig());
 	Gpio clk_pin(GetClkGpoConfig());
 	Gpio si_pin(GetSiGpoConfig());
-	SimpleBuzzer buzzer(0);
+	SimpleBuzzer buzzer({0});
 	Joystick joystick(0);
 	St7735r lcd(true);
 	LcdConsole console(&lcd);

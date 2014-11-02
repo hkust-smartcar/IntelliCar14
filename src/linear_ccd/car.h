@@ -23,7 +23,7 @@
 #include <libsc/k60/led.h>
 #include <libsc/k60/light_sensor.h>
 #include <libsc/k60/linear_ccd.h>
-#include <libsc/k60/motor.h>
+#include <libsc/k60/dir_motor.h>
 #include <libsc/k60/simple_buzzer.h>
 #include <libsc/k60/st7735r.h>
 #include <libsc/k60/switch.h>
@@ -314,7 +314,7 @@ private:
 	libsc::k60::Led m_leds[4];
 	libsc::k60::LightSensor m_light_sensors[2];
 	libsc::k60::LinearCcd m_ccds[2];
-	libsc::k60::Motor m_motor;
+	libsc::k60::DirMotor m_motor;
 	libsc::k60::SimpleBuzzer m_buzzer;
 	libsc::k60::Switch m_switches[5];
 	libsc::k60::TrsD05 m_servo;

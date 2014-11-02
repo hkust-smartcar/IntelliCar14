@@ -17,7 +17,7 @@
 #include <libsc/k60/led.h>
 #include <libsc/k60/light_sensor.h>
 #include <libsc/k60/linear_ccd.h>
-#include <libsc/k60/motor.h>
+#include <libsc/k60/dir_motor.h>
 #include <libsc/k60/servo.h>
 #include <libsc/k60/switch.h>
 #include <libsc/k60/uart_device.h>
@@ -51,6 +51,13 @@ Dac::Config GetDacConfig()
 	return dc;
 }
 
+DirMotor::Config GetMotorConfig()
+{
+	DirMotor::Config dc;
+	dc.id = 0;
+	return dc;
+}
+
 }
 
 Car::Car(const LightSensor::OnDetectListener &light_sensor_listener)
@@ -64,7 +71,8 @@ Car::Car(const LightSensor::OnDetectListener &light_sensor_listener)
 		  m_leds{Led(0), Led(1), Led(2), Led(3)},
 		  m_light_sensors{LightSensor(0, light_sensor_listener),
 			  	  LightSensor(1, light_sensor_listener)},
-		  m_ccds{LinearCcd(0), LinearCcd(1)}, m_motor(0, false), m_buzzer(0),
+		  m_ccds{LinearCcd(0), LinearCcd(1)}, m_motor(GetMotorConfig()),
+		  m_buzzer({0}),
 		  m_switches{Switch(0), Switch(1), Switch(2), Switch(3), Switch(4)},
 		  m_servo(0), m_bt(0, libbase::k60::Uart::Config::BaudRate::k115200)
 {

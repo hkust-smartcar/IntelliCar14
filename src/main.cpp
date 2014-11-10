@@ -13,7 +13,7 @@ Mcg::Config Mcg::GetMcgConfig()
 {
 	Mcg::Config config;
 	config.external_oscillator_khz = 50000;
-	config.core_clock_khz = 200000;
+	config.core_clock_khz = 180000;
 	config.bus_clock_khz = 50000;
 	config.flexbus_clock_khz = 50000;
 	config.flash_clock_khz = 25000;

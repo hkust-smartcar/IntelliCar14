@@ -13,6 +13,7 @@
 #include <libsc/k60/system.h>
 #include <libsc/k60/timer.h>
 #include <libutil/remote_var_manager.h>
+#include <libutil/misc.h>
 #include <libutil/string.h>
 
 #include "linear_ccd/debug.h"
@@ -257,6 +258,8 @@ void TuningMenu3::AdjustValueTurn(const bool is_positive)
 		return;
 	}
 
+	*reinterpret_cast<uint32_t*>(data + 1) =
+			htobe32(*reinterpret_cast<uint32_t*>(data + 1));
 	m_car->UartSendBuffer(data, 5);
 }
 
@@ -314,6 +317,8 @@ void TuningMenu3::AdjustValueSpeed(const bool is_positive)
 		return;
 	}
 
+	*reinterpret_cast<uint32_t*>(data + 1) =
+			htobe32(*reinterpret_cast<uint32_t*>(data + 1));
 	m_car->UartSendBuffer(data, 5);
 }
 

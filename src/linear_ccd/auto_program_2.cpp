@@ -375,6 +375,8 @@ void TuningMenu::AdjustValueTurn(const bool is_positive)
 		return;
 	}
 
+	*reinterpret_cast<uint32_t*>(data + 1) =
+			htobe32(*reinterpret_cast<uint32_t*>(data + 1));
 	m_car->UartSendBuffer(data, 5);
 }
 
@@ -432,6 +434,8 @@ void TuningMenu::AdjustValueSpeed(const bool is_positive)
 		return;
 	}
 
+	*reinterpret_cast<uint32_t*>(data + 1) =
+			htobe32(*reinterpret_cast<uint32_t*>(data + 1));
 	m_car->UartSendBuffer(data, 5);
 }
 
